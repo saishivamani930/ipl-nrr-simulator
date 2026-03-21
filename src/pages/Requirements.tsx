@@ -1,27 +1,20 @@
-import { useEffect, useState } from "react";
 import { RequirementsSection } from "@/components/RequirementsSection";
-import { fetchStandings } from "@/lib/api";
 import type { Team } from "@/types/api";
 
-export default function Requirements() {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+interface RequirementsProps {
+  teams: Team[];
+  loading?: boolean;
+  error?: string;
+}
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await fetchStandings(2026);
-        setTeams(data.standings ?? []);
-      } catch (e) {
-        console.error("Failed to load standings:", e);
-        setTeams([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  if (loading) return <div className="pt-20 px-4">Loading...</div>;
-
+export default function Requirements({ teams, loading }: RequirementsProps) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-sm text-muted-foreground gap-2">
+        <span className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        Loading standings...
+      </div>
+    );
+  }
   return <RequirementsSection teams={teams} />;
 }

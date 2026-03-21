@@ -25,7 +25,7 @@ export function StandingsSection({ teams, onTeamsLoad, onBack }: StandingsSectio
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-foreground">Live Standings</h2>
             <p className="mt-2 text-muted-foreground">
-              Current WPL 2026 standings with NRR data
+              Current IPL 2026 standings with NRR data
             </p>
           </div>
           

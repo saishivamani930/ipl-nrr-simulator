@@ -1,55 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 220 20% 7%;
-    --foreground: 210 20% 90%;
+    /* IPLT20-style light theme */
+    --background: 220 20% 94%;
+    --foreground: 225 70% 18%;
 
-    --card: 220 20% 10%;
-    --card-foreground: 210 20% 90%;
+    --card: 0 0% 100%;
+    --card-foreground: 225 70% 18%;
 
-    --popover: 220 25% 12%;
-    --popover-foreground: 210 20% 90%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 225 70% 18%;
 
-    --primary: 30 100% 50%;
-    --primary-foreground: 220 20% 7%;
+    /* IPL Gold */
+    --primary: 38 70% 55%;
+    --primary-foreground: 225 70% 18%;
 
-    --secondary: 220 15% 15%;
-    --secondary-foreground: 210 20% 90%;
+    /* Secondary */
+    --secondary: 220 18% 88%;
+    --secondary-foreground: 225 70% 18%;
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 210 10% 55%;
+    --muted: 220 20% 90%;
+    --muted-foreground: 220 10% 45%;
 
-    --accent: 30 100% 50%;
-    --accent-foreground: 220 20% 7%;
+    --accent: 16 87% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 18% 85%;
+    --input: 220 18% 85%;
+    --ring: 223 71% 32%;
+
+    --radius: 0.5rem;
+
+    --success: 152 55% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 43 92% 53%;
+    --warning-foreground: 225 70% 18%;
+
+    --info: 223 71% 32%;
+    --info-foreground: 0 0% 100%;
+
+    /* custom IPL colours */
+    --ipl-blue: 223 71% 32%;
+    --ipl-blue-dark: 226 78% 25%;
+    --ipl-navy-text: 225 70% 18%;
+    --ipl-orange: 16 87% 55%;
+    --ipl-page: 220 20% 94%;
+    --ipl-card: 0 0% 100%;
+    --ipl-border: 220 18% 85%;
+  }
+}
+@layer base {
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 92%;
+
+    --card: 222 40% 12%;
+    --card-foreground: 210 40% 92%;
+
+    --popover: 222 40% 12%;
+    --popover-foreground: 210 40% 92%;
+
+    --primary: 38 95% 54%;
+    --primary-foreground: 225 70% 10%;
+
+    --secondary: 222 35% 18%;
+    --secondary-foreground: 210 40% 92%;
+
+    --muted: 222 35% 18%;
+    --muted-foreground: 210 20% 55%;
+
+    --accent: 213 90% 55%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 20%;
-    --input: 220 15% 20%;
-    --ring: 30 100% 50%;
+    --border: 222 30% 20%;
+    --input: 222 30% 20%;
+    --ring: 38 95% 54%;
 
-    --radius: 0.625rem;
-
-    --success: 152 55% 45%;
-    --success-foreground: 0 0% 100%;
-    
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    --info: 199 89% 48%;
-    --info-foreground: 0 0% 100%;
-
-    --hero-gradient-start: 220 20% 7%;
-    --hero-gradient-mid: 220 25% 12%;
-    --hero-gradient-end: 220 20% 7%;
+    --ipl-blue: 213 90% 55%;
+    --ipl-blue-dark: 222 47% 6%;
+    --ipl-navy-text: 210 40% 92%;
+    --ipl-orange: 38 95% 54%;
+    --ipl-page: 222 47% 6%;
+    --ipl-card: 222 40% 12%;
+    --ipl-border: 222 30% 20%;
   }
 }
 
@@ -58,7 +103,159 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: 'Outfit', sans-serif;
+    background-color: hsl(var(--background));
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: hsl(var(--foreground));
+  }
+
+  .font-mono,
+  .tabular-nums {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .text-ipl-blue {
+    color: hsl(var(--ipl-blue));
+  }
+
+  .text-ipl-navy {
+    color: hsl(var(--ipl-navy-text));
+  }
+
+  .text-ipl-orange {
+    color: hsl(var(--ipl-orange));
+  }
+
+  .bg-ipl-blue {
+    background-color: hsl(var(--ipl-blue));
+  }
+
+  .bg-ipl-blue-dark {
+    background-color: hsl(var(--ipl-blue-dark));
+  }
+
+  .bg-ipl-page {
+    background-color: hsl(var(--ipl-page));
+  }
+
+  .bg-ipl-card {
+    background-color: hsl(var(--ipl-card));
+  }
+
+  .border-ipl {
+    border-color: hsl(var(--ipl-border));
+  }
+
+  .glow-gold {
+    box-shadow: none;
+  }
+
+  .glow-blue {
+    box-shadow: none;
+  }
+
+  /* remove dark sports grid effect */
+  .pitch-texture {
+    background: hsl(var(--background));
+  }
+
+  .gold-gradient {
+    background: linear-gradient(135deg, #f05a28, #ff7a45);
+  }
+
+  .navy-gradient {
+    background: linear-gradient(180deg, #102c74, #173a8a);
+  }
+
+  .card-shine {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-shine::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.25),
+      transparent
+    );
+    transition: left 0.6s ease;
+  }
+
+  .card-shine:hover::before {
+    left: 150%;
+  }
+
+  @keyframes count-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.5s ease forwards;
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.4s ease forwards;
+  }
+
+  .animate-count-up {
+    animation: count-up 0.4s ease forwards;
+  }
+
+  .glow-gold:disabled {
+    opacity: 1 !important;
+    background-color: hsl(220 15% 75%) !important;
+    color: hsl(220 15% 40%) !important;
+    cursor: not-allowed;
+  }
+
+  .dark .glow-gold:disabled {
+    background-color: hsl(222 20% 30%) !important;
+    color: hsl(210 15% 65%) !important;
+    cursor: not-allowed;
+  }
+
+  .glow-gold:not(:disabled) {
+    background-color: hsl(38 95% 54%) !important;
+    color: hsl(225 70% 18%) !important;
+  }
+
+  .text-primary {
+    font-weight: 550;
+  }
+
+  .stagger-1 { animation-delay: 0.1s; opacity: 0; }
+  .stagger-2 { animation-delay: 0.2s; opacity: 0; }
+  .stagger-3 { animation-delay: 0.3s; opacity: 0; }
+  .stagger-4 { animation-delay: 0.4s; opacity: 0; }
 }

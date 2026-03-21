@@ -1,11 +1,20 @@
-// API Types for WPL NRR Simulator
+// API Types for IPL NRR Simulator
 
 export interface Team {
   team: string;
+  code?: string;
   matches: number;
+  won?: number;
+  lost?: number;
+  nr?: number;
+  tied?: number;
   points: number;
   nrr: number;
   position: number;
+  runs_for?: number;
+  balls_for?: number;
+  runs_against?: number;
+  balls_against?: number;
 }
 
 export interface StandingsResponse {
@@ -84,6 +93,8 @@ export interface MatchSimulateRequest {
   team2_runs: number;
   team2_overs: string;
   team2_all_out: boolean;
+  result?: 'WIN' | 'TIE' | 'NR';
+  winner?: string;
 }
 
 export interface MatchSimulateResult {

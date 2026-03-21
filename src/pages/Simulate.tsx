@@ -1,43 +1,20 @@
-import { useEffect, useState } from "react";
 import { SimulateSection } from "@/components/SimulateSection";
-import { fetchStandings } from "@/lib/api";
 import type { Team } from "@/types/api";
 
-export default function Simulate() {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+interface SimulateProps {
+  teams: Team[];
+  loading?: boolean;
+  error?: string;
+}
 
-  useEffect(() => {
-    let mounted = true;
-
-    const run = async () => {
-      try {
-        const data = await fetchStandings(2026);
-        if (mounted) {
-          setTeams(data.standings ?? []);
-        }
-      } catch (e) {
-        console.error("Failed to load standings:", e);
-        if (mounted) {
-          setTeams([]);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    run();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
+export default function Simulate({ teams, loading, error }: SimulateProps) {
   if (loading) {
-    return <div className="pt-20 px-4">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center py-20 text-sm text-muted-foreground gap-2">
+        <span className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        Loading standings...
+      </div>
+    );
   }
-
   return <SimulateSection teams={teams} />;
 }

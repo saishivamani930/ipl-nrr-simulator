@@ -10,7 +10,7 @@ export function Header() {
           </div>
           <div>
             <h1 className="text-xl font-semibold text-foreground">
-              WPL NRR Scenario Simulator
+              IPL NRR Scenario Simulator
             </h1>
             <p className="text-sm text-muted-foreground">
               Understand qualification scenarios using NRR

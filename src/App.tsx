@@ -11,10 +11,11 @@ import Planner from "./pages/Planner";
 import Requirements from "./pages/Requirements";
 import NotFound from "./pages/NotFound";
 
-import { AppLayout } from "@/layouts/AppLayout"; // ✅ ADD THIS
-
+import { AppLayout } from "@/layouts/AppLayout";
 import { getStandings } from "@/lib/api";
 import type { Team, StandingsResponse } from "@/types/api";
+
+import Schedule from "./pages/Schedule";
 
 const queryClient = new QueryClient();
 
@@ -39,24 +40,13 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* ✅ Navbar/Layout wrapper */}
       <Route element={<AppLayout />}>
-        <Route path="/" element={<Index />} />
-        <Route
-          path="/simulate"
-          element={<Simulate teams={teams} loading={isLoading} error={errorMsg} />}
-        />
-        <Route
-          path="/planner"
-          element={<Planner teams={teams} loading={isLoading} error={errorMsg} />}
-        />
-        <Route
-          path="/requirements"
-          element={<Requirements teams={teams} loading={isLoading} error={errorMsg} />}
-        />
+        <Route path="/" element={<Index teams={teams} loading={isLoading} />} />
+        <Route path="/simulate" element={<Simulate teams={teams} loading={isLoading} error={errorMsg} />} />
+        <Route path="/planner" element={<Planner teams={teams} loading={isLoading} error={errorMsg} />} />
+        <Route path="/requirements" element={<Requirements teams={teams} loading={isLoading} error={errorMsg} />} />
+        <Route path="/schedule" element={<Schedule />} />
       </Route>
-
-      {/* Keep NotFound outside layout (or move inside if you want navbar there too) */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
