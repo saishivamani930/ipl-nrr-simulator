@@ -46,7 +46,7 @@ function FeatureCard({
   return (
     <div
       className="relative rounded-xl border border-[#d8dce5] bg-white p-5 overflow-hidden transition-all duration-300 dark:border-white/10 dark:bg-[#111c2e]"
-      style={{ height: expanded ? '200px' : '80px' }}
+      style={{ height: expanded ? 'auto' : '80px', minHeight: expanded ? '200px' : '80px' }}
       onMouseEnter={() => {
         if (isHoverDevice()) setExpanded(true);
       }}
@@ -124,7 +124,7 @@ function FixturesPanel() {
 
   useEffect(() => {
     const loadFixtures = () => {
-      fetch('http://localhost:8000/api/fixtures?season=2026')
+      fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/fixtures?season=2026`)
         .then(r => r.json())
         .then(data => {
           const list = data?.data?.fixtures ?? [];
@@ -413,7 +413,7 @@ export function HeroSection({ onNavigate, teams = [], loading }: HeroSectionProp
         <div className="absolute inset-0 bg-gradient-to-b from-[#173A8A] to-[#102C74]" />
 
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -left-24 -top-20 opacity-65 hidden sm:block">
+          <div className="absolute -left-24 -top-32 opacity-65 hidden sm:block">
             <svg
               width="440"
               height="440"
@@ -445,7 +445,7 @@ export function HeroSection({ onNavigate, teams = [], loading }: HeroSectionProp
             </svg>
           </div>
 
-          <div className="absolute -right-24 -top-20 opacity-65 hidden sm:block">
+          <div className="absolute -right-24 -top-32 opacity-65 hidden sm:block">
             <svg
               width="440"
               height="440"
@@ -477,7 +477,7 @@ export function HeroSection({ onNavigate, teams = [], loading }: HeroSectionProp
             </svg>
           </div>
 
-          <div className="absolute -left-24 -bottom-20 opacity-65 hidden sm:block">
+          <div className="absolute -left-24 -bottom-32 opacity-65 hidden sm:block">
             <svg
               width="440"
               height="440"
@@ -509,7 +509,7 @@ export function HeroSection({ onNavigate, teams = [], loading }: HeroSectionProp
             </svg>
           </div>
 
-          <div className="absolute -right-24 -bottom-20 opacity-65 hidden sm:block">
+          <div className="absolute -right-24 -bottom-32 opacity-65 hidden sm:block">
             <svg
               width="440"
               height="440"
