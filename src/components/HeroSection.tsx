@@ -741,89 +741,102 @@ export function HeroSection({ onNavigate, teams = [], loading }: HeroSectionProp
           </div>
         </div>
       </section>
-            {showMonteCarloHelp && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setShowMonteCarloHelp(false)}
-        >
-          <div
-            className="relative w-full max-w-xl rounded-2xl border border-[#d8dce5] bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#111c2e]"
-            onClick={e => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setShowMonteCarloHelp(false)}
-              className="absolute right-4 top-4 text-[#6B7280] hover:text-[#081B4B] dark:text-[#94a3b8] dark:hover:text-white"
-              aria-label="Close help"
+    {showMonteCarloHelp && (
+  <div
+    className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
+    onClick={() => setShowMonteCarloHelp(false)}
+  >
+    <div
+      className="relative w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl border border-[#d8dce5] bg-white shadow-2xl dark:border-white/10 dark:bg-[#111c2e] max-h-[90vh] overflow-y-auto"
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="p-5 space-y-4">
+        <div className="flex items-start justify-between border-b border-[#d8dce5] dark:border-white/10 pb-4">
+          <div>
+            <p className="mb-1 font-mono text-xs uppercase tracking-widest text-[#f05a28]">
+              Monte Carlo Help
+            </p>
+            <h3
+              className="text-2xl font-bold text-[#081B4B] dark:text-white"
+              style={{ fontFamily: 'Rajdhani, sans-serif' }}
             >
-              <X className="h-5 w-5" />
-            </button>
+              How this works
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMonteCarloHelp(false)}
+            className="ml-4 flex-shrink-0 text-[#6B7280] hover:text-[#081B4B] dark:text-[#94a3b8] dark:hover:text-white"
+            aria-label="Close help"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-            <div className="mb-4">
-              <p className="mb-1 font-mono text-xs uppercase tracking-widest text-[#f05a28]">
-                Monte Carlo Help
-              </p>
-              <h3
-                className="text-2xl font-bold text-[#081B4B] dark:text-white"
-                style={{ fontFamily: 'Rajdhani, sans-serif' }}
-              >
-                How this works
-              </h3>
-            </div>
+        <div className="space-y-4 text-sm leading-relaxed text-[#475569] dark:text-[#cbd5e1]">
+          <p>
+            The Monte Carlo simulator does not predict one exact future. Instead, it simulates
+            the remaining season many times and checks how often each team finishes in the top 4.
+          </p>
 
-            <div className="space-y-4 text-sm leading-relaxed text-[#475569] dark:text-[#cbd5e1]">
-              <p>
-                The Monte Carlo simulator does not predict one exact future. Instead, it simulates
-                the remaining season many times and checks how often each team finishes in the top 4.
-              </p>
+          <div className="rounded-xl border border-[#d8dce5] bg-[#f8fafc] p-4 dark:border-white/10 dark:bg-[#16243a]">
+            <p className="font-semibold text-[#081B4B] dark:text-white mb-2">Simple flow</p>
+            <ol className="list-decimal pl-5 space-y-1">
+              <li>Take the current points table.</li>
+              <li>Take the remaining fixtures.</li>
+              <li>Simulate each remaining match many times.</li>
+              <li>Recalculate points and NRR after every simulated season.</li>
+              <li>Check which teams end in the top 4.</li>
+              <li>Convert that count into probability.</li>
+            </ol>
+          </div>
 
-              <div className="rounded-xl border border-[#d8dce5] bg-[#f8fafc] p-4 dark:border-white/10 dark:bg-[#16243a]">
-                <p className="font-semibold text-[#081B4B] dark:text-white mb-2">Simple flow</p>
-                <ol className="list-decimal pl-5 space-y-1">
-                  <li>Take the current points table.</li>
-                  <li>Take the remaining fixtures.</li>
-                  <li>Simulate each remaining match many times.</li>
-                  <li>Recalculate points and NRR after every simulated season.</li>
-                  <li>Check which teams end in the top 4.</li>
-                  <li>Convert that count into probability.</li>
-                </ol>
-              </div>
+          <p>
+            Example: if Chennai qualifies in <strong>7,200</strong> out of <strong>10,000</strong>{' '}
+            simulated seasons, its top-4 qualification probability becomes <strong>72%</strong>.
+          </p>
 
-              <p>
-                Example: if Chennai qualifies in <strong>7,200</strong> out of <strong>10,000</strong>{' '}
-                simulated seasons, its top-4 qualification probability becomes <strong>72%</strong>.
-              </p>
+          <p>
+            So when you see a value like <strong>72%</strong>, it means:
+            <br />
+            <span className="text-[#173A8A] dark:text-[#93c5fd] font-medium">
+              "In the simulated possible futures, this team reached the top 4 in 72% of them."
+            </span>
+          </p>
 
-              <p>
-                So when you see a value like <strong>72%</strong>, it means:
-                <br />
-                <span className="text-[#173A8A] dark:text-[#93c5fd] font-medium">
-                  “In the simulated possible futures, this team reached the top 4 in 72% of them.”
-                </span>
-              </p>
+          <div className="rounded-xl border border-[#d8dce5] bg-[#fdfcf7] p-4 dark:border-white/10 dark:bg-[#1d2432]">
+            <p className="font-semibold text-[#081B4B] dark:text-white mb-2">What is the Seed?</p>
+            <p>
+              The <strong>Seed</strong> is an optional number that makes the simulation reproducible.
+              By default, each run uses different randomness and gives slightly different results.
+              Setting a seed — e.g. <strong>42</strong> — locks the randomness so you get the exact
+              same result every time. Useful for comparing scenarios fairly or debugging.
+            </p>
+          </div>
 
-              <div className="rounded-xl border border-[#d8dce5] bg-[#fdfcf7] p-4 dark:border-white/10 dark:bg-[#1d2432]">
-                <p className="font-semibold text-[#081B4B] dark:text-white mb-2">Important note</p>
-                <p>
-                  This is a probability model, not a guarantee. It depends on the current standings,
-                  remaining fixtures, and the simulator assumptions. It helps estimate chances, not
-                  announce final results.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <Button
-                onClick={() => setShowMonteCarloHelp(false)}
-                className="border-0 bg-[#173A8A] text-white hover:bg-[#102C74]"
-                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em' }}
-              >
-                GOT IT
-              </Button>
-            </div>
+          <div className="rounded-xl border border-[#d8dce5] bg-[#fdfcf7] p-4 dark:border-white/10 dark:bg-[#1d2432]">
+            <p className="font-semibold text-[#081B4B] dark:text-white mb-2">Important note</p>
+            <p>
+              This is a probability model, not a guarantee. It depends on the current standings,
+              remaining fixtures, and the simulator assumptions. It helps estimate chances, not
+              announce final results.
+            </p>
           </div>
         </div>
-      )}
+
+        <div className="flex justify-end pt-2">
+          <Button
+            onClick={() => setShowMonteCarloHelp(false)}
+            className="border-0 bg-[#173A8A] text-white hover:bg-[#102C74]"
+            style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em' }}
+          >
+            GOT IT
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
       <Footer />
     </div>
