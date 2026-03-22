@@ -372,7 +372,7 @@ export function MonteCarloPlanner({ teams }: MonteCarloPlannerProps) {
               size="sm"
               onClick={loadEspnFixtures}
               disabled={fixturesLoading}
-              className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-xs"
+              className="gap-1.5 border-gray-300 bg-white hover:bg-gray-50 text-xs dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${fixturesLoading ? "animate-spin" : ""}`} />
               Refresh
@@ -387,7 +387,7 @@ export function MonteCarloPlanner({ teams }: MonteCarloPlannerProps) {
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-mono transition-colors ${
                 hasDateFilter
                   ? "border-primary/50 bg-primary/10 text-primary"
-                  : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10"
+                  : "border-gray-300 bg-white text-muted-foreground hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
               }`}
             >
               <Calendar className="h-3.5 w-3.5" />
@@ -401,7 +401,7 @@ export function MonteCarloPlanner({ teams }: MonteCarloPlannerProps) {
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-mono transition-colors ${
                 showTbd
                   ? "border-primary/50 bg-primary/10 text-primary"
-                  : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10"
+                  : "border-gray-300 bg-white text-muted-foreground hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
               }`}
             >
               {showTbd ? "Hide TBD (21–70)" : "Show TBD (21–70)"}
