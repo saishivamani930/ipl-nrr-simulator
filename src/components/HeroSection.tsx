@@ -123,25 +123,31 @@ function FixturesPanel() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadFixtures = () => {
-      fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/fixtures?season=2026`)
-        .then(r => r.json())
-        .then(data => {
-          const list = data?.data?.fixtures ?? [];
-          setFixtures(list);
-        })
-        .catch(() => setFixtures([]))
-        .finally(() => setLoading(false));
-    };
+  // Ping backend to wake it up from Render free tier sleep
+  fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/health`)
+    .catch(() => {});
+}, []);
 
+useEffect(() => {
+  const loadFixtures = () => {
+    fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/fixtures?season=2026`)
+      .then(r => r.json())
+      .then(data => {
+        const list = data?.fixtures ?? data?.data?.fixtures ?? [];
+        setFixtures(list);
+      })
+      .catch(() => setFixtures([]))
+      .finally(() => setLoading(false));
+  };
+
+  loadFixtures();
+
+  const interval = setInterval(() => {
     loadFixtures();
+  }, 60000);
 
-    const interval = setInterval(() => {
-      loadFixtures();
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, []);
+  return () => clearInterval(interval);
+}, []);
 
   const live = fixtures.filter(f => f.status === 'live');
   const upcoming = fixtures.filter(f => f.status === 'upcoming').slice(0, 5);
@@ -174,9 +180,12 @@ function FixturesPanel() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-8 text-sm text-[#6B7280]">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#173A8A] border-t-transparent mr-2" />
-            Loading fixtures...
+          <div className="flex flex-col items-center justify-center gap-3 py-10 text-sm text-[#6B7280]">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#173A8A] border-t-transparent" />
+            <span>Loading standings...</span>
+            <span className="text-xs text-[#6B7280]/60 max-w-xs text-center">
+              If this takes more than 10 seconds, the server may be waking up from sleep. Please wait a moment.
+            </span>
           </div>
         ) : (
           <div className="space-y-3">
