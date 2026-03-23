@@ -559,20 +559,46 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                   setLoading(true);
                   setError(null);
                   try {
+                    // Re-simulate all matches before the tied one
+                    const preTiedMatches = matches.slice(0, tiedMatchIndex)
+                      .filter(m => m.team1 && m.team2);
+                    
+                    const allResults: MatchSimulateResult[] = [];
+
+                    // Simulate matches before the tie
+                    if (preTiedMatches.length > 0) {
+                      const batchData = await simulateMatchBatch(
+                        preTiedMatches.map(m => ({
+                          team1: m.team1, team2: m.team2,
+                          team1_runs: parseInt(m.team1Runs, 10) || 0,
+                          team1_overs: m.team1Overs, team1_all_out: m.team1AllOut,
+                          team2_runs: parseInt(m.team2Runs, 10) || 0,
+                          team2_overs: m.team2Overs, team2_all_out: m.team2AllOut,
+                        }))
+                      );
+                      const converted = batchData.results.map((r: any, i: number) => ({
+                        team1: r.team1, team2: r.team2,
+                        result_description: `Match ${r.match_index} simulated`,
+                        updated_standings: r.updated_table.map((row: any, idx: number) => ({
+                          ...row, team: row.team ?? row.code, position: idx + 1,
+                        })),
+                      }));
+                      allResults.push(...converted);
+                    }
+
+                    // Now simulate the tied match with Super Over winner
                     const tm = matches[tiedMatchIndex];
                     const data = await simulateMatch({
-                      team1: tm.team1,
-                      team2: tm.team2,
+                      team1: tm.team1, team2: tm.team2,
                       team1_runs: parseInt(tm.team1Runs, 10) || 0,
-                      team1_overs: tm.team1Overs,
-                      team1_all_out: tm.team1AllOut,
+                      team1_overs: tm.team1Overs, team1_all_out: tm.team1AllOut,
                       team2_runs: parseInt(tm.team2Runs, 10) || 0,
-                      team2_overs: tm.team2Overs,
-                      team2_all_out: tm.team2AllOut,
-                      result: 'WIN',
-                      winner: superOverWinner,
+                      team2_overs: tm.team2Overs, team2_all_out: tm.team2AllOut,
+                      result: 'WIN', winner: superOverWinner,
                     });
-                    setResults([data]);
+                    allResults.push(data);
+
+                    setResults(allResults);
                     setIsTied(false);
                   } catch (err) {
                     setError(err instanceof Error ? err.message : 'Simulation failed');
