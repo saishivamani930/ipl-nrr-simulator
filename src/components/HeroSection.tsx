@@ -9,6 +9,7 @@ import {
   HelpCircle,
   X,
   Activity,
+  MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Footer } from '@/components/Footer';
@@ -207,8 +208,11 @@ useEffect(() => {
                   </span>
                 </div>
                 {f.venue && (
-                  <span className="text-xs text-[#6B7280] dark:text-[#94a3b8]">{f.venue}</span>
-                )}
+                <span className="flex items-center gap-1 text-xs text-[#6B7280] dark:text-[#94a3b8]">
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  {f.venue}
+                </span>
+              )}
               </div>
             ))}
 
@@ -229,7 +233,10 @@ useEffect(() => {
                   </span>
                 </div>
                 {f.venue && (
-                  <span className="text-xs text-[#6B7280] dark:text-[#94a3b8]">{f.venue}</span>
+                  <span className="flex items-center gap-1 text-xs text-[#6B7280] dark:text-[#94a3b8]">
+                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                    {f.venue}
+                  </span>
                 )}
               </div>
             ))}
