@@ -237,6 +237,7 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
   const [error, setError] = useState<string | null>(null);
   const [isTied, setIsTied] = useState(false);
   const [superOverWinner, setSuperOverWinner] = useState('');
+  const [tiedMatchIndex, setTiedMatchIndex] = useState(0);
   const [runsWarning, setRunsWarning] = useState<string | null>(null);
 
   // Keep first match aliases for super over compatibility
@@ -313,6 +314,7 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
         setIsTied(true);
         setError(null);
         setSuperOverWinner('');
+        setTiedMatchIndex(matches.findIndex(m => m.team1 && m.team2));
       } else {
         setError(msg);
         setIsTied(false);
@@ -539,8 +541,8 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                   <SelectValue placeholder="Select Super Over winner" />
                 </SelectTrigger>
                 <SelectContent>
-                  {team1 && <SelectItem value={team1}>{teams.find(t => (t.code ?? t.team) === team1)?.team ?? team1}</SelectItem>}
-                  {team2 && <SelectItem value={team2}>{teams.find(t => (t.code ?? t.team) === team2)?.team ?? team2}</SelectItem>}
+                  {matches[tiedMatchIndex]?.team1 && <SelectItem value={matches[tiedMatchIndex].team1}>{teams.find(t => (t.code ?? t.team) === matches[tiedMatchIndex].team1)?.team ?? matches[tiedMatchIndex].team1}</SelectItem>}
+                  {matches[tiedMatchIndex]?.team2 && <SelectItem value={matches[tiedMatchIndex].team2}>{teams.find(t => (t.code ?? t.team) === matches[tiedMatchIndex].team2)?.team ?? matches[tiedMatchIndex].team2}</SelectItem>}
                 </SelectContent>
               </Select>
               <Button
@@ -551,15 +553,16 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                   setLoading(true);
                   setError(null);
                   try {
+                    const tm = matches[tiedMatchIndex];
                     const data = await simulateMatch({
-                      team1,
-                      team2,
-                      team1_runs: parseInt(team1Runs, 10) || 0,
-                      team1_overs: team1Overs,
-                      team1_all_out: team1AllOut,
-                      team2_runs: parseInt(team2Runs, 10) || 0,
-                      team2_overs: team2Overs,
-                      team2_all_out: team2AllOut,
+                      team1: tm.team1,
+                      team2: tm.team2,
+                      team1_runs: parseInt(tm.team1Runs, 10) || 0,
+                      team1_overs: tm.team1Overs,
+                      team1_all_out: tm.team1AllOut,
+                      team2_runs: parseInt(tm.team2Runs, 10) || 0,
+                      team2_overs: tm.team2Overs,
+                      team2_all_out: tm.team2AllOut,
                       result: 'WIN',
                       winner: superOverWinner,
                     });
