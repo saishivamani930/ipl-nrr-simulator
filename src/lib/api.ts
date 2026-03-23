@@ -314,6 +314,20 @@ export async function simulateMatch(
   return handleResponse(res, normalizeSimulate);
 }
 
+export async function simulateMatchBatch(
+  matches: MatchSimulateRequest[],
+  opts?: { season?: number; source?: "live" | "mock" }
+): Promise<{ results: { match_index: number; team1: string; team2: string; updated_table: any[] }[] }> {
+  const season = opts?.season ?? 2026;
+  const source = opts?.source ?? "live";
+  const res = await fetch(buildUrl("/api/simulate/batch", { source, season }), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ matches }),
+  });
+  return handleResponse(res, (p) => p as any);
+}
+
 export async function runMonteCarloSimulation(
   body: MonteCarloRequest,
   opts?: { season?: number; source?: "live" | "mock" }

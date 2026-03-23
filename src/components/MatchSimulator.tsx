@@ -22,6 +22,8 @@ import {
 import { simulateMatch } from '@/lib/api';
 import type { Team, MatchSimulateResult } from '@/types/api';
 
+import {simulateMatchBatch } from '@/lib/api';
+
 interface MatchSimulatorProps {
   teams: Team[];
 }
@@ -272,22 +274,39 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
     setResults([]);
 
     try {
-      const allResults: MatchSimulateResult[] = [];
-      for (const m of matches) {
-        if (!m.team1 || !m.team2) continue;
+      if (matches.length === 1) {
+        const m = matches[0];
         const data = await simulateMatch({
-          team1: m.team1,
-          team2: m.team2,
+          team1: m.team1, team2: m.team2,
           team1_runs: parseInt(m.team1Runs, 10) || 0,
-          team1_overs: m.team1Overs,
-          team1_all_out: m.team1AllOut,
+          team1_overs: m.team1Overs, team1_all_out: m.team1AllOut,
           team2_runs: parseInt(m.team2Runs, 10) || 0,
-          team2_overs: m.team2Overs,
-          team2_all_out: m.team2AllOut,
+          team2_overs: m.team2Overs, team2_all_out: m.team2AllOut,
         });
-        allResults.push(data);
+        setResults([data]);
+      } else {
+        const batchData = await simulateMatchBatch(
+          matches.filter(m => m.team1 && m.team2).map(m => ({
+            team1: m.team1, team2: m.team2,
+            team1_runs: parseInt(m.team1Runs, 10) || 0,
+            team1_overs: m.team1Overs, team1_all_out: m.team1AllOut,
+            team2_runs: parseInt(m.team2Runs, 10) || 0,
+            team2_overs: m.team2Overs, team2_all_out: m.team2AllOut,
+          }))
+        );
+        // Convert batch results to MatchSimulateResult format
+        const converted = batchData.results.map(r => ({
+          team1: r.team1,
+          team2: r.team2,
+          result_description: `Match ${r.match_index} simulated`,
+          updated_standings: r.updated_table.map((row: any, i: number) => ({
+            ...row,
+            team: row.team ?? row.code,
+            position: i + 1,
+          })),
+        }));
+        setResults(converted);
       }
-      setResults(allResults);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Simulation failed';
       if (msg.toLowerCase().includes('tied') || msg.toLowerCase().includes('tie')) {
