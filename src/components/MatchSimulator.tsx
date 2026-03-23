@@ -314,9 +314,12 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
         setIsTied(true);
         setError(null);
         setSuperOverWinner('');
-        // Parse "Match 2 is tied..." to find which match tied
         const matchNumMatch = msg.match(/match\s+(\d+)/i);
         const tiedIdx = matchNumMatch ? parseInt(matchNumMatch[1], 10) - 1 : 0;
+        console.log('[TIE DEBUG] msg:', msg);
+        console.log('[TIE DEBUG] matchNumMatch:', matchNumMatch);
+        console.log('[TIE DEBUG] tiedIdx:', tiedIdx);
+        console.log('[TIE DEBUG] matches:', JSON.stringify(matches));
         setTiedMatchIndex(tiedIdx);
       } else {
         setError(msg);
