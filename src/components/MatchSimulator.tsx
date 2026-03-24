@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Calculator, AlertCircle, Trophy, TrendingUp, TrendingDown, ArrowRight, Minus, Plus } from 'lucide-react';
+import { Calculator, AlertCircle, Trophy, TrendingUp, TrendingDown, ArrowRight, Minus, Plus, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,12 +30,17 @@ interface MatchEntry {
   team1: string; team2: string;
   team1Runs: string; team1Overs: string; team1AllOut: boolean;
   team2Runs: string; team2Overs: string; team2AllOut: boolean;
+  // Per-match super over state
+  isTied: boolean;
+  superOverWinner: string;
 }
 
 const emptyMatch = (): MatchEntry => ({
   team1: '', team2: '',
   team1Runs: '', team1Overs: '20', team1AllOut: false,
   team2Runs: '', team2Overs: '20', team2AllOut: false,
+  isTied: false,
+  superOverWinner: '',
 });
 
 const TEAM_LOGOS: Record<string, string> = {
@@ -219,21 +224,52 @@ function convertBatchResult(r: any): MatchSimulateResult {
   };
 }
 
+// Detect which match index is tied from the API error message
+function parseTiedMatchIndex(msg: string): number {
+  const matchNumMatch = msg.match(/match\s+(\d+)/i);
+  return matchNumMatch ? parseInt(matchNumMatch[1], 10) - 1 : 0;
+}
+
 export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
   const [matches, setMatches] = useState<MatchEntry[]>([emptyMatch()]);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<MatchSimulateResult[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isTied, setIsTied] = useState(false);
-  const [superOverWinner, setSuperOverWinner] = useState('');
-  const [tiedMatchIndex, setTiedMatchIndex] = useState(0);
   const [runsWarning, setRunsWarning] = useState<string | null>(null);
 
   function updateMatch(idx: number, field: keyof MatchEntry, value: any) {
     setMatches(prev => prev.map((m, i) => i === idx ? { ...m, [field]: value } : m));
   }
 
+  // Mark a specific match as tied and clear any previous tie on other matches
+  function markMatchTied(tiedIdx: number) {
+    setMatches(prev => prev.map((m, i) =>
+      i === tiedIdx
+        ? { ...m, isTied: true, superOverWinner: '' }
+        : { ...m, isTied: false, superOverWinner: '' }
+    ));
+  }
+
+  // Check if any match is still awaiting a super over winner
+  const anyMatchPendingSuperOver = matches.some(m => m.isTied && !m.superOverWinner);
+  const anyMatchTied = matches.some(m => m.isTied);
+
   const hasTeams = teams.length > 0;
+
+  const buildBatchPayload = (matchList: MatchEntry[]) =>
+    matchList
+      .filter(m => m.team1 && m.team2)
+      .map(m => ({
+        team1: m.team1, team2: m.team2,
+        team1_runs: parseInt(m.team1Runs, 10) || 0,
+        team1_overs: m.team1Overs, team1_all_out: m.team1AllOut,
+        team2_runs: parseInt(m.team2Runs, 10) || 0,
+        team2_overs: m.team2Overs, team2_all_out: m.team2AllOut,
+        // If this match had a tie resolved via super over, pass the winner
+        ...(m.isTied && m.superOverWinner
+          ? { result: 'WIN', winner: m.superOverWinner }
+          : {}),
+      }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,13 +284,19 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
       }
     }
 
+    await runSimulation();
+  };
+
+  const runSimulation = async () => {
     setLoading(true);
     setError(null);
     setResults([]);
 
     try {
-      if (matches.length === 1) {
-        const m = matches[0];
+      const validMatches = matches.filter(m => m.team1 && m.team2);
+
+      if (validMatches.length === 1 && !validMatches[0].isTied) {
+        const m = validMatches[0];
         const data = await simulateMatch({
           team1: m.team1, team2: m.team2,
           team1_runs: parseInt(m.team1Runs, 10) || 0,
@@ -264,30 +306,52 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
         });
         setResults([data]);
       } else {
-        const batchData = await simulateMatchBatch(
-          matches.filter(m => m.team1 && m.team2).map(m => ({
-            team1: m.team1, team2: m.team2,
-            team1_runs: parseInt(m.team1Runs, 10) || 0,
-            team1_overs: m.team1Overs, team1_all_out: m.team1AllOut,
-            team2_runs: parseInt(m.team2Runs, 10) || 0,
-            team2_overs: m.team2Overs, team2_all_out: m.team2AllOut,
-          }))
-        );
+        const batchData = await simulateMatchBatch(buildBatchPayload(matches));
         setResults(batchData.results.map(convertBatchResult));
+        // On success, clear all tied states
+        setMatches(prev => prev.map(m => ({ ...m, isTied: false, superOverWinner: '' })));
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Simulation failed';
-      if (msg.toLowerCase().includes('tied') || msg.toLowerCase().includes('tie')) {
-        setIsTied(true);
+      const msgLower = msg.toLowerCase();
+
+      if (msgLower.includes('tied') || msgLower.includes('tie')) {
+        const tiedIdx = parseTiedMatchIndex(msg);
+        markMatchTied(tiedIdx);
         setError(null);
-        setSuperOverWinner('');
-        const matchNumMatch = msg.match(/match\s+(\d+)/i);
-        const tiedIdx = matchNumMatch ? parseInt(matchNumMatch[1], 10) - 1 : 0;
-        setTiedMatchIndex(tiedIdx);
       } else {
         setError(msg);
-        setIsTied(false);
-        setSuperOverWinner('');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Called when user clicks "Apply Super Over Result" for a specific match
+  const handleApplySuperOver = async (matchIdx: number) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const batchData = await simulateMatchBatch(buildBatchPayload(matches));
+      setResults(batchData.results.map(convertBatchResult));
+      // Clear all tied states on success
+      setMatches(prev => prev.map(m => ({ ...m, isTied: false, superOverWinner: '' })));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Simulation failed';
+      const msgLower = msg.toLowerCase();
+
+      // Another match may also be tied — detect and mark it
+      if (msgLower.includes('tied') || msgLower.includes('tie')) {
+        const newTiedIdx = parseTiedMatchIndex(msg);
+        // Keep the already-resolved super over, only mark the new tie
+        setMatches(prev => prev.map((m, i) => {
+          if (i === newTiedIdx) return { ...m, isTied: true, superOverWinner: '' };
+          return m;
+        }));
+        setError(null);
+      } else {
+        setError(msg);
       }
     } finally {
       setLoading(false);
@@ -301,6 +365,14 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
   const currentStandings: Team[] = useMemo(() => {
     return [...teams].map((t, i) => ({ ...t, position: i + 1 }));
   }, [teams]);
+
+  // Determine simulate button label
+  const validMatchCount = matches.filter(m => m.team1 && m.team2).length;
+  const simulateBtnLabel = loading
+    ? 'SIMULATING...'
+    : validMatchCount > 1
+      ? `SIMULATE ${validMatchCount} MATCHES`
+      : 'SIMULATE MATCH';
 
   return (
     <div className="space-y-6">
@@ -317,15 +389,35 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             {matches.map((m, idx) => (
-              <div key={idx} className={`space-y-4 ${matches.length > 1 ? 'rounded-lg border border-gray-200 dark:border-white/10 p-4' : ''}`}>
+              <div
+                key={idx}
+                className={`space-y-4 ${
+                  matches.length > 1
+                    ? `rounded-lg border p-4 ${
+                        m.isTied
+                          ? 'border-primary/40 bg-primary/[0.02]'
+                          : 'border-gray-200 dark:border-white/10'
+                      }`
+                    : ''
+                }`}
+              >
+                {/* Match header */}
                 {matches.length > 1 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold text-primary uppercase tracking-wider">Match {idx + 1}</span>
-                    <button type="button" onClick={() => setMatches(prev => prev.filter((_, i) => i !== idx))}
-                      className="text-xs text-red-400 hover:text-red-600 font-mono transition-colors">Remove</button>
+                    <span className="text-xs font-mono font-bold text-primary uppercase tracking-wider">
+                      Match {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMatches(prev => prev.filter((_, i) => i !== idx))}
+                      className="text-xs text-red-400 hover:text-red-600 font-mono transition-colors"
+                    >
+                      Remove
+                    </button>
                   </div>
                 )}
 
+                {/* Team selectors */}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Batting First</Label>
@@ -355,6 +447,7 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                   </div>
                 </div>
 
+                {/* Innings inputs */}
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -365,21 +458,27 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                     <div className="grid gap-3 grid-cols-2">
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">Runs</Label>
-                        <Input type="number" min="0" max="400" value={m.team1Runs}
+                        <Input
+                          type="number" min="0" max="400" value={m.team1Runs}
                           onChange={e => updateMatch(idx, 'team1Runs', e.target.value)}
                           placeholder="e.g. 165"
-                          className={`bg-secondary/50 font-mono ${!m.team1Runs && runsWarning ? 'border-red-400' : 'border-white/10'}`} />
+                          className={`bg-secondary/50 font-mono ${!m.team1Runs && runsWarning ? 'border-red-400' : 'border-white/10'}`}
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">Overs</Label>
-                        <Input type="text" value={m.team1Overs}
+                        <Input
+                          type="text" value={m.team1Overs}
                           onChange={e => updateMatch(idx, 'team1Overs', e.target.value)}
-                          placeholder="20.0" className="bg-secondary/50 border-white/10 font-mono" />
+                          placeholder="20.0" className="bg-secondary/50 border-white/10 font-mono"
+                        />
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch id={`team1-allout-${idx}`} checked={m.team1AllOut}
-                        onCheckedChange={v => updateMatch(idx, 'team1AllOut', v)} />
+                      <Switch
+                        id={`team1-allout-${idx}`} checked={m.team1AllOut}
+                        onCheckedChange={v => updateMatch(idx, 'team1AllOut', v)}
+                      />
                       <Label htmlFor={`team1-allout-${idx}`} className="text-xs text-muted-foreground">
                         All Out <span className="text-muted-foreground/60">(counts as full 20 overs)</span>
                       </Label>
@@ -395,30 +494,83 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                     <div className="grid gap-3 grid-cols-2">
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">Runs</Label>
-                        <Input type="number" min="0" max="400" value={m.team2Runs}
+                        <Input
+                          type="number" min="0" max="400" value={m.team2Runs}
                           onChange={e => updateMatch(idx, 'team2Runs', e.target.value)}
                           placeholder="e.g. 158"
-                          className={`bg-secondary/50 font-mono ${!m.team2Runs && runsWarning ? 'border-red-400' : 'border-white/10'}`} />
+                          className={`bg-secondary/50 font-mono ${!m.team2Runs && runsWarning ? 'border-red-400' : 'border-white/10'}`}
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">Overs Played</Label>
-                        <Input type="text" value={m.team2Overs}
+                        <Input
+                          type="text" value={m.team2Overs}
                           onChange={e => updateMatch(idx, 'team2Overs', e.target.value)}
-                          placeholder="20.0" className="bg-secondary/50 border-white/10 font-mono" />
+                          placeholder="20.0" className="bg-secondary/50 border-white/10 font-mono"
+                        />
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch id={`team2-allout-${idx}`} checked={m.team2AllOut}
-                        onCheckedChange={v => updateMatch(idx, 'team2AllOut', v)} />
+                      <Switch
+                        id={`team2-allout-${idx}`} checked={m.team2AllOut}
+                        onCheckedChange={v => updateMatch(idx, 'team2AllOut', v)}
+                      />
                       <Label htmlFor={`team2-allout-${idx}`} className="text-xs text-muted-foreground">
                         All Out <span className="text-muted-foreground/60">(counts as full 20 overs)</span>
                       </Label>
                     </div>
                   </div>
                 </div>
+
+                {/* ── Per-match Super Over Section ── */}
+                {m.isTied && (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3 mt-2">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-primary flex-shrink-0" />
+                      <p className="text-sm font-semibold text-foreground" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                        Scores Tied — Super Over
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      This match is tied. Select the Super Over winner to continue.
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Select
+                        value={m.superOverWinner}
+                        onValueChange={v => updateMatch(idx, 'superOverWinner', v)}
+                      >
+                        <SelectTrigger className="bg-secondary/50 border-white/10">
+                          <SelectValue placeholder="Select Super Over winner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {m.team1 && (
+                            <SelectItem value={m.team1}>
+                              {teams.find(t => (t.code ?? t.team) === m.team1)?.team ?? m.team1}
+                            </SelectItem>
+                          )}
+                          {m.team2 && (
+                            <SelectItem value={m.team2}>
+                              {teams.find(t => (t.code ?? t.team) === m.team2)?.team ?? m.team2}
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        disabled={!m.superOverWinner || loading}
+                        className="gap-2 glow-gold font-semibold disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-200"
+                        style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em' }}
+                        onClick={() => handleApplySuperOver(idx)}
+                      >
+                        APPLY SUPER OVER RESULT
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
 
+            {/* Warnings */}
             {runsWarning && (
               <div className="flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-600 dark:text-yellow-400">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -426,96 +578,47 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
               </div>
             )}
 
+            {/* Add Match + Simulate row */}
             <div className="flex gap-3">
-              <Button type="button" variant="outline"
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setMatches(prev => [...prev, emptyMatch()])}
                 className="gap-2 border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-muted-foreground text-xs"
-                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em' }}>
+                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em' }}
+              >
                 <Plus className="h-4 w-4" />
                 Add Match
               </Button>
-              <Button type="submit"
-                disabled={matches.every(m => !m.team1 || !m.team2) || loading}
+              <Button
+                type="submit"
+                disabled={matches.every(m => !m.team1 || !m.team2) || loading || anyMatchPendingSuperOver}
                 className="flex-1 gap-2 glow-gold font-semibold disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-200"
-                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em', fontSize: '0.95rem' }}>
+                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em', fontSize: '0.95rem' }}
+              >
                 <Calculator className="h-4 w-4" />
-                {loading ? 'SIMULATING...' : matches.length > 1 ? `SIMULATE ${matches.length} MATCHES` : 'SIMULATE MATCH'}
+                {simulateBtnLabel}
               </Button>
             </div>
+
+            {/* Hint when a super over is pending */}
+            {anyMatchPendingSuperOver && (
+              <p className="text-xs text-primary/70 text-center">
+                Select a Super Over winner for the tied match above to continue simulating.
+              </p>
+            )}
           </form>
         )}
 
-        {error && !isTied && (
+        {error && (
           <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
-
-        {isTied && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
-            <p className="text-sm text-foreground font-semibold" style={{ fontFamily: 'Rajdhani,sans-serif' }}>
-              ⚡ Scores Tied — Super Over
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Match {tiedMatchIndex + 1} is tied. Select the Super Over winner — all matches will be simulated together in sequence.
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Select value={superOverWinner} onValueChange={setSuperOverWinner}>
-                <SelectTrigger className="bg-secondary/50 border-white/10">
-                  <SelectValue placeholder="Select Super Over winner" />
-                </SelectTrigger>
-                <SelectContent>
-                  {matches[tiedMatchIndex]?.team1 && (
-                    <SelectItem value={matches[tiedMatchIndex].team1}>
-                      {teams.find(t => (t.code ?? t.team) === matches[tiedMatchIndex].team1)?.team ?? matches[tiedMatchIndex].team1}
-                    </SelectItem>
-                  )}
-                  {matches[tiedMatchIndex]?.team2 && (
-                    <SelectItem value={matches[tiedMatchIndex].team2}>
-                      {teams.find(t => (t.code ?? t.team) === matches[tiedMatchIndex].team2)?.team ?? matches[tiedMatchIndex].team2}
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              <Button
-                disabled={!superOverWinner || loading}
-                className="gap-2 glow-gold font-semibold"
-                style={{ fontFamily: 'Rajdhani,sans-serif', letterSpacing: '0.05em' }}
-                onClick={async () => {
-                  setLoading(true);
-                  setError(null);
-                  try {
-                    // Send ALL matches as one batch — tied match gets result=WIN + winner
-                    const allMatchesForBatch = matches
-                      .filter(m => m.team1 && m.team2)
-                      .map((m, i) => ({
-                        team1: m.team1, team2: m.team2,
-                        team1_runs: parseInt(m.team1Runs, 10) || 0,
-                        team1_overs: m.team1Overs, team1_all_out: m.team1AllOut,
-                        team2_runs: parseInt(m.team2Runs, 10) || 0,
-                        team2_overs: m.team2Overs, team2_all_out: m.team2AllOut,
-                        ...(i === tiedMatchIndex ? { result: 'WIN', winner: superOverWinner } : {}),
-                      }));
-
-                    const batchData = await simulateMatchBatch(allMatchesForBatch);
-                    setResults(batchData.results.map(convertBatchResult));
-                    setIsTied(false);
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : 'Simulation failed');
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-              >
-                APPLY SUPER OVER RESULT
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Tables section */}
+      {/* Standings tables */}
       {hasTeams && (
         <div className="rounded-xl border border-gray-200 bg-white dark:border-white/5 dark:bg-card p-6 space-y-4">
           {summary && (
