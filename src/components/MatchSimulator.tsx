@@ -19,10 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { simulateMatch } from '@/lib/api';
+import { simulateMatch, simulateMatchBatch } from '@/lib/api';
 import type { Team, MatchSimulateResult } from '@/types/api';
-
-import {simulateMatchBatch } from '@/lib/api';
 
 interface MatchSimulatorProps {
   teams: Team[];
@@ -56,6 +54,7 @@ const TEAM_LOGOS: Record<string, string> = {
 function teamCode(t: Team): string {
   return t.code ?? t.team;
 }
+
 function getTeamLogo(team: Team): string {
   const code = team.code ?? team.team;
   return TEAM_LOGOS[code] ?? '';
@@ -128,7 +127,6 @@ function StandingsTable({ rows, highlightCodes = [], label, labelColor = 'text-m
               const before = beforeByCode.get(code);
               const posChanged = before && before.position !== t.position;
               const posUp = before && t.position < before.position;
-
               const currentNrr = t.nrr ?? 0;
               const beforeNrr = before?.nrr ?? 0;
 
@@ -137,22 +135,12 @@ function StandingsTable({ rows, highlightCodes = [], label, labelColor = 'text-m
 
               if (beforeRows) {
                 if (isHighlighted) {
-                  if (currentNrr > beforeNrr) {
-                    nrrColorClass = 'text-green-400';
-                    NrrIcon = TrendingUp;
-                  } else if (currentNrr < beforeNrr) {
-                    nrrColorClass = 'text-red-400';
-                    NrrIcon = TrendingDown;
-                  }
+                  if (currentNrr > beforeNrr) { nrrColorClass = 'text-green-400'; NrrIcon = TrendingUp; }
+                  else if (currentNrr < beforeNrr) { nrrColorClass = 'text-red-400'; NrrIcon = TrendingDown; }
                 }
               } else {
-                if (currentNrr > 0) {
-                  nrrColorClass = 'text-green-400';
-                  NrrIcon = TrendingUp;
-                } else if (currentNrr < 0) {
-                  nrrColorClass = 'text-red-400';
-                  NrrIcon = TrendingDown;
-                }
+                if (currentNrr > 0) { nrrColorClass = 'text-green-400'; NrrIcon = TrendingUp; }
+                else if (currentNrr < 0) { nrrColorClass = 'text-red-400'; NrrIcon = TrendingDown; }
               }
 
               return (
@@ -174,16 +162,13 @@ function StandingsTable({ rows, highlightCodes = [], label, labelColor = 'text-m
                       )}
                     </div>
                   </TableCell>
-
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <img
                         src={getTeamLogo(t)}
                         alt={`${t.team ?? code} logo`}
                         className="h-6 w-6 rounded-full object-contain bg-white/5 p-0.5"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = 'none';
-                        }}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                       />
                       <span
                         className={`font-semibold text-xs sm:text-sm ${isHighlighted ? 'text-primary' : 'text-foreground'}`}
@@ -194,25 +179,16 @@ function StandingsTable({ rows, highlightCodes = [], label, labelColor = 'text-m
                       </span>
                     </div>
                   </TableCell>
-
-                  <TableCell className="text-center font-mono text-xs text-muted-foreground hidden sm:table-cell">
-                    {t.matches ?? 0}
-                  </TableCell>
-                  <TableCell className="text-center font-mono text-xs text-green-400 hidden sm:table-cell">
-                    {t.won ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-center font-mono text-xs text-red-400 hidden sm:table-cell">
-                    {t.lost ?? '—'}
-                  </TableCell>
+                  <TableCell className="text-center font-mono text-xs text-muted-foreground hidden sm:table-cell">{t.matches ?? 0}</TableCell>
+                  <TableCell className="text-center font-mono text-xs text-green-400 hidden sm:table-cell">{t.won ?? '—'}</TableCell>
+                  <TableCell className="text-center font-mono text-xs text-red-400 hidden sm:table-cell">{t.lost ?? '—'}</TableCell>
                   <TableCell className="text-center font-mono text-xs sm:hidden">
                     <span className="text-green-400">{t.won ?? 0}</span>
                     <span className="text-muted-foreground">-</span>
                     <span className="text-red-400">{t.lost ?? 0}</span>
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className={`font-mono font-bold text-sm ${isHighlighted ? 'text-primary' : 'text-foreground'}`}>
-                      {t.points}
-                    </span>
+                    <span className={`font-mono font-bold text-sm ${isHighlighted ? 'text-primary' : 'text-foreground'}`}>{t.points}</span>
                   </TableCell>
                   <TableCell className="text-right">
                     <span className={`font-mono text-xs flex items-center justify-end gap-1 ${nrrColorClass}`}>
@@ -230,6 +206,19 @@ function StandingsTable({ rows, highlightCodes = [], label, labelColor = 'text-m
   );
 }
 
+function convertBatchResult(r: any): MatchSimulateResult {
+  return {
+    team1: r.team1,
+    team2: r.team2,
+    result_description: `Match ${r.match_index} simulated`,
+    updated_standings: r.updated_table.map((row: any, i: number) => ({
+      ...row,
+      team: row.team ?? row.code,
+      position: i + 1,
+    })),
+  };
+}
+
 export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
   const [matches, setMatches] = useState<MatchEntry[]>([emptyMatch()]);
   const [loading, setLoading] = useState(false);
@@ -239,16 +228,6 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
   const [superOverWinner, setSuperOverWinner] = useState('');
   const [tiedMatchIndex, setTiedMatchIndex] = useState(0);
   const [runsWarning, setRunsWarning] = useState<string | null>(null);
-
-  // Keep first match aliases for super over compatibility
-  const team1 = matches[0].team1;
-  const team2 = matches[0].team2;
-  const team1Runs = matches[0].team1Runs;
-  const team1Overs = matches[0].team1Overs;
-  const team1AllOut = matches[0].team1AllOut;
-  const team2Runs = matches[0].team2Runs;
-  const team2Overs = matches[0].team2Overs;
-  const team2AllOut = matches[0].team2AllOut;
 
   function updateMatch(idx: number, field: keyof MatchEntry, value: any) {
     setMatches(prev => prev.map((m, i) => i === idx ? { ...m, [field]: value } : m));
@@ -260,7 +239,6 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
     e.preventDefault();
     setRunsWarning(null);
 
-    // Validate runs for all matches
     for (let i = 0; i < matches.length; i++) {
       const m = matches[i];
       if (!m.team1 || !m.team2) continue;
@@ -295,18 +273,7 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
             team2_overs: m.team2Overs, team2_all_out: m.team2AllOut,
           }))
         );
-        // Convert batch results to MatchSimulateResult format
-        const converted = batchData.results.map(r => ({
-          team1: r.team1,
-          team2: r.team2,
-          result_description: `Match ${r.match_index} simulated`,
-          updated_standings: r.updated_table.map((row: any, i: number) => ({
-            ...row,
-            team: row.team ?? row.code,
-            position: i + 1,
-          })),
-        }));
-        setResults(converted);
+        setResults(batchData.results.map(convertBatchResult));
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Simulation failed';
@@ -316,10 +283,6 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
         setSuperOverWinner('');
         const matchNumMatch = msg.match(/match\s+(\d+)/i);
         const tiedIdx = matchNumMatch ? parseInt(matchNumMatch[1], 10) - 1 : 0;
-        console.log('[TIE DEBUG] msg:', msg);
-        console.log('[TIE DEBUG] matchNumMatch:', matchNumMatch);
-        console.log('[TIE DEBUG] tiedIdx:', tiedIdx);
-        console.log('[TIE DEBUG] matches:', JSON.stringify(matches));
         setTiedMatchIndex(tiedIdx);
       } else {
         setError(msg);
@@ -341,12 +304,8 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
 
   return (
     <div className="space-y-6">
-      {/* Form */}
       <div className="rounded-xl border border-gray-200 bg-white dark:border-white/5 dark:bg-card p-6 space-y-6">
-        <h3
-          className="text-lg font-bold text-foreground"
-          style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.03em' }}
-        >
+        <h3 className="text-lg font-bold text-foreground" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.03em' }}>
           Match Details
         </h3>
 
@@ -357,21 +316,13 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-
             {matches.map((m, idx) => (
               <div key={idx} className={`space-y-4 ${matches.length > 1 ? 'rounded-lg border border-gray-200 dark:border-white/10 p-4' : ''}`}>
                 {matches.length > 1 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold text-primary uppercase tracking-wider">
-                      Match {idx + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setMatches(prev => prev.filter((_, i) => i !== idx))}
-                      className="text-xs text-red-400 hover:text-red-600 font-mono transition-colors"
-                    >
-                      Remove
-                    </button>
+                    <span className="text-xs font-mono font-bold text-primary uppercase tracking-wider">Match {idx + 1}</span>
+                    <button type="button" onClick={() => setMatches(prev => prev.filter((_, i) => i !== idx))}
+                      className="text-xs text-red-400 hover:text-red-600 font-mono transition-colors">Remove</button>
                   </div>
                 )}
 
@@ -405,7 +356,6 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-2">
-                  {/* 1st Innings */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="h-px flex-1 bg-white/5" />
@@ -415,40 +365,27 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                     <div className="grid gap-3 grid-cols-2">
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">Runs</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="400"
-                          value={m.team1Runs}
+                        <Input type="number" min="0" max="400" value={m.team1Runs}
                           onChange={e => updateMatch(idx, 'team1Runs', e.target.value)}
                           placeholder="e.g. 165"
-                          className={`bg-secondary/50 font-mono ${!m.team1Runs && runsWarning ? 'border-red-400' : 'border-white/10'}`}
-                        />
+                          className={`bg-secondary/50 font-mono ${!m.team1Runs && runsWarning ? 'border-red-400' : 'border-white/10'}`} />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">Overs</Label>
-                        <Input
-                          type="text"
-                          value={m.team1Overs}
+                        <Input type="text" value={m.team1Overs}
                           onChange={e => updateMatch(idx, 'team1Overs', e.target.value)}
-                          placeholder="20.0"
-                          className="bg-secondary/50 border-white/10 font-mono"
-                        />
+                          placeholder="20.0" className="bg-secondary/50 border-white/10 font-mono" />
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch
-                        id={`team1-allout-${idx}`}
-                        checked={m.team1AllOut}
-                        onCheckedChange={v => updateMatch(idx, 'team1AllOut', v)}
-                      />
+                      <Switch id={`team1-allout-${idx}`} checked={m.team1AllOut}
+                        onCheckedChange={v => updateMatch(idx, 'team1AllOut', v)} />
                       <Label htmlFor={`team1-allout-${idx}`} className="text-xs text-muted-foreground">
                         All Out <span className="text-muted-foreground/60">(counts as full 20 overs)</span>
                       </Label>
                     </div>
                   </div>
 
-                  {/* 2nd Innings */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="h-px flex-1 bg-white/5" />
@@ -458,33 +395,21 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                     <div className="grid gap-3 grid-cols-2">
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">Runs</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="400"
-                          value={m.team2Runs}
+                        <Input type="number" min="0" max="400" value={m.team2Runs}
                           onChange={e => updateMatch(idx, 'team2Runs', e.target.value)}
                           placeholder="e.g. 158"
-                          className={`bg-secondary/50 font-mono ${!m.team2Runs && runsWarning ? 'border-red-400' : 'border-white/10'}`}
-                        />
+                          className={`bg-secondary/50 font-mono ${!m.team2Runs && runsWarning ? 'border-red-400' : 'border-white/10'}`} />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">Overs Played</Label>
-                        <Input
-                          type="text"
-                          value={m.team2Overs}
+                        <Input type="text" value={m.team2Overs}
                           onChange={e => updateMatch(idx, 'team2Overs', e.target.value)}
-                          placeholder="20.0"
-                          className="bg-secondary/50 border-white/10 font-mono"
-                        />
+                          placeholder="20.0" className="bg-secondary/50 border-white/10 font-mono" />
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch
-                        id={`team2-allout-${idx}`}
-                        checked={m.team2AllOut}
-                        onCheckedChange={v => updateMatch(idx, 'team2AllOut', v)}
-                      />
+                      <Switch id={`team2-allout-${idx}`} checked={m.team2AllOut}
+                        onCheckedChange={v => updateMatch(idx, 'team2AllOut', v)} />
                       <Label htmlFor={`team2-allout-${idx}`} className="text-xs text-muted-foreground">
                         All Out <span className="text-muted-foreground/60">(counts as full 20 overs)</span>
                       </Label>
@@ -502,23 +427,17 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
             )}
 
             <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
+              <Button type="button" variant="outline"
                 onClick={() => setMatches(prev => [...prev, emptyMatch()])}
                 className="gap-2 border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-muted-foreground text-xs"
-                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em' }}
-              >
+                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em' }}>
                 <Plus className="h-4 w-4" />
                 Add Match
               </Button>
-
-              <Button
-                type="submit"
+              <Button type="submit"
                 disabled={matches.every(m => !m.team1 || !m.team2) || loading}
                 className="flex-1 gap-2 glow-gold font-semibold disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-200"
-                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em', fontSize: '0.95rem' }}
-              >
+                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.05em', fontSize: '0.95rem' }}>
                 <Calculator className="h-4 w-4" />
                 {loading ? 'SIMULATING...' : matches.length > 1 ? `SIMULATE ${matches.length} MATCHES` : 'SIMULATE MATCH'}
               </Button>
@@ -539,7 +458,7 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
               ⚡ Scores Tied — Super Over
             </p>
             <p className="text-xs text-muted-foreground">
-              The match is tied. NRR is calculated on the tied scores. Select the Super Over winner for points only.
+              Match {tiedMatchIndex + 1} is tied. Select the Super Over winner — all matches will be simulated together in sequence.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <Select value={superOverWinner} onValueChange={setSuperOverWinner}>
@@ -547,8 +466,16 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                   <SelectValue placeholder="Select Super Over winner" />
                 </SelectTrigger>
                 <SelectContent>
-                  {matches[tiedMatchIndex]?.team1 && <SelectItem value={matches[tiedMatchIndex].team1}>{teams.find(t => (t.code ?? t.team) === matches[tiedMatchIndex].team1)?.team ?? matches[tiedMatchIndex].team1}</SelectItem>}
-                  {matches[tiedMatchIndex]?.team2 && <SelectItem value={matches[tiedMatchIndex].team2}>{teams.find(t => (t.code ?? t.team) === matches[tiedMatchIndex].team2)?.team ?? matches[tiedMatchIndex].team2}</SelectItem>}
+                  {matches[tiedMatchIndex]?.team1 && (
+                    <SelectItem value={matches[tiedMatchIndex].team1}>
+                      {teams.find(t => (t.code ?? t.team) === matches[tiedMatchIndex].team1)?.team ?? matches[tiedMatchIndex].team1}
+                    </SelectItem>
+                  )}
+                  {matches[tiedMatchIndex]?.team2 && (
+                    <SelectItem value={matches[tiedMatchIndex].team2}>
+                      {teams.find(t => (t.code ?? t.team) === matches[tiedMatchIndex].team2)?.team ?? matches[tiedMatchIndex].team2}
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               <Button
@@ -559,46 +486,20 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
                   setLoading(true);
                   setError(null);
                   try {
-                    // Re-simulate all matches before the tied one
-                    const preTiedMatches = matches.slice(0, tiedMatchIndex)
-                      .filter(m => m.team1 && m.team2);
-                    
-                    const allResults: MatchSimulateResult[] = [];
-
-                    // Simulate matches before the tie
-                    if (preTiedMatches.length > 0) {
-                      const batchData = await simulateMatchBatch(
-                        preTiedMatches.map(m => ({
-                          team1: m.team1, team2: m.team2,
-                          team1_runs: parseInt(m.team1Runs, 10) || 0,
-                          team1_overs: m.team1Overs, team1_all_out: m.team1AllOut,
-                          team2_runs: parseInt(m.team2Runs, 10) || 0,
-                          team2_overs: m.team2Overs, team2_all_out: m.team2AllOut,
-                        }))
-                      );
-                      const converted = batchData.results.map((r: any, i: number) => ({
-                        team1: r.team1, team2: r.team2,
-                        result_description: `Match ${r.match_index} simulated`,
-                        updated_standings: r.updated_table.map((row: any, idx: number) => ({
-                          ...row, team: row.team ?? row.code, position: idx + 1,
-                        })),
+                    // Send ALL matches as one batch — tied match gets result=WIN + winner
+                    const allMatchesForBatch = matches
+                      .filter(m => m.team1 && m.team2)
+                      .map((m, i) => ({
+                        team1: m.team1, team2: m.team2,
+                        team1_runs: parseInt(m.team1Runs, 10) || 0,
+                        team1_overs: m.team1Overs, team1_all_out: m.team1AllOut,
+                        team2_runs: parseInt(m.team2Runs, 10) || 0,
+                        team2_overs: m.team2Overs, team2_all_out: m.team2AllOut,
+                        ...(i === tiedMatchIndex ? { result: 'WIN', winner: superOverWinner } : {}),
                       }));
-                      allResults.push(...converted);
-                    }
 
-                    // Now simulate the tied match with Super Over winner
-                    const tm = matches[tiedMatchIndex];
-                    const data = await simulateMatch({
-                      team1: tm.team1, team2: tm.team2,
-                      team1_runs: parseInt(tm.team1Runs, 10) || 0,
-                      team1_overs: tm.team1Overs, team1_all_out: tm.team1AllOut,
-                      team2_runs: parseInt(tm.team2Runs, 10) || 0,
-                      team2_overs: tm.team2Overs, team2_all_out: tm.team2AllOut,
-                      result: 'WIN', winner: superOverWinner,
-                    });
-                    allResults.push(data);
-
-                    setResults(allResults);
+                    const batchData = await simulateMatchBatch(allMatchesForBatch);
+                    setResults(batchData.results.map(convertBatchResult));
                     setIsTied(false);
                   } catch (err) {
                     setError(err instanceof Error ? err.message : 'Simulation failed');
@@ -626,27 +527,26 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
             </div>
           )}
 
-           {results.length > 0 ? (
-            <div className="space-y-6">
-              <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr]">
-                <StandingsTable
-                  rows={currentStandings}
-                  highlightCodes={highlightCodes}
-                  label="Before"
-                  labelColor="text-muted-foreground"
-                />
-                <div className="hidden lg:flex items-center justify-center">
-                  <ArrowRight className="h-6 w-6 text-primary opacity-60" />
-                </div>
-                <StandingsTable
-                  rows={result!.updated_standings}
-                  highlightCodes={highlightCodes}
-                  label={`After ${results.length} Match${results.length > 1 ? 'es' : ''}`}
-                  labelColor="text-primary"
-                  beforeRows={currentStandings}
-                />
+          {results.length > 0 ? (
+            <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr]">
+              <StandingsTable
+                rows={currentStandings}
+                highlightCodes={highlightCodes}
+                label="Before"
+                labelColor="text-muted-foreground"
+              />
+              <div className="hidden lg:flex items-center justify-center">
+                <ArrowRight className="h-6 w-6 text-primary opacity-60" />
               </div>
-            </div>) : (
+              <StandingsTable
+                rows={result!.updated_standings}
+                highlightCodes={highlightCodes}
+                label={`After ${results.length} Match${results.length > 1 ? 'es' : ''}`}
+                labelColor="text-primary"
+                beforeRows={currentStandings}
+              />
+            </div>
+          ) : (
             <StandingsTable
               rows={currentStandings}
               label="Current Points Table"
