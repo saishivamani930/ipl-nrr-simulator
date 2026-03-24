@@ -267,7 +267,7 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
         team2_overs: m.team2Overs, team2_all_out: m.team2AllOut,
         // If this match had a tie resolved via super over, pass the winner
         ...(m.isTied && m.superOverWinner
-          ? { result: 'WIN', winner: m.superOverWinner }
+          ? { result: 'WIN'as const , winner: m.superOverWinner }
           : {}),
       }));
 
