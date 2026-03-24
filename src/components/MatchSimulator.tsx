@@ -332,7 +332,7 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
   };
 
   const result = results.length > 0 ? results[results.length - 1] : null;
-  const summary = result ? buildPlainEnglishSummary(result, teams) : null;
+  const summary = results.map(r => buildPlainEnglishSummary(r, teams)).join(' | ');
   const highlightCodes = results.flatMap(r => [r.team1, r.team2]);
 
   const currentStandings: Team[] = useMemo(() => {
@@ -626,26 +626,27 @@ export function MatchSimulator({ teams = [] }: MatchSimulatorProps) {
             </div>
           )}
 
-          {result ? (
-            <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr]">
-              <StandingsTable
-                rows={currentStandings}
-                highlightCodes={highlightCodes}
-                label="Before"
-                labelColor="text-muted-foreground"
-              />
-              <div className="hidden lg:flex items-center justify-center">
-                <ArrowRight className="h-6 w-6 text-primary opacity-60" />
+           {results.length > 0 ? (
+            <div className="space-y-6">
+              <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr]">
+                <StandingsTable
+                  rows={currentStandings}
+                  highlightCodes={highlightCodes}
+                  label="Before"
+                  labelColor="text-muted-foreground"
+                />
+                <div className="hidden lg:flex items-center justify-center">
+                  <ArrowRight className="h-6 w-6 text-primary opacity-60" />
+                </div>
+                <StandingsTable
+                  rows={result!.updated_standings}
+                  highlightCodes={highlightCodes}
+                  label={`After ${results.length} Match${results.length > 1 ? 'es' : ''}`}
+                  labelColor="text-primary"
+                  beforeRows={currentStandings}
+                />
               </div>
-              <StandingsTable
-                rows={result.updated_standings}
-                highlightCodes={highlightCodes}
-                label="After"
-                labelColor="text-primary"
-                beforeRows={currentStandings}
-              />
-            </div>
-          ) : (
+            </div>) : (
             <StandingsTable
               rows={currentStandings}
               label="Current Points Table"
