@@ -179,7 +179,7 @@ function StandingsTable({ rows, highlightCodes = [], label, labelColor = 'text-m
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center font-mono text-xs text-muted-foreground hidden sm:table-cell">{t.matches ?? 0}</TableCell>
+                  <TableCell className="text-center font-mono text-xs text-muted-foreground hidden sm:table-cell">{t.matches ?? t.played ?? 0}</TableCell>
                   <TableCell className="text-center font-mono text-xs text-green-400 hidden sm:table-cell">{t.won ?? '—'}</TableCell>
                   <TableCell className="text-center font-mono text-xs text-red-400 hidden sm:table-cell">{t.lost ?? '—'}</TableCell>
                   <TableCell className="text-center font-mono text-xs sm:hidden">
