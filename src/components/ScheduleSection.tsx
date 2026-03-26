@@ -188,7 +188,7 @@ export function ScheduleSection() {
           : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-muted-foreground dark:hover:bg-white/10"
       }`}
     >
-      {showTbd ? "Hide TBD (21–70)" : "Show TBD (21–70)"}
+      {showTbd ? "Hide TBD (21–70)" : "Show Matches (21–70)"}
     </button>
     <button
       onClick={load}
