@@ -219,10 +219,10 @@ export function ScheduleSection() {
               IPL 2026 Schedule
             </h1>
             <p className="text-sm text-muted-foreground">
-              Full fixture list — league stage matches 1 to 70
+              70 T20S . March 28 - May 31
               {fixtures.length > 0 && (
                 <span className="ml-2 text-primary font-mono">
-                  ({filtered.length}{filtered.length !== fixtures.length ? ` of ${fixtures.length}` : ""} matches)
+                  ({filtered.length}{filtered.length !== fixtures.length ? ` of ${fixtures.length}` : ""} league stage matches)
                 </span>
               )}
             </p>
