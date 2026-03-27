@@ -46,8 +46,13 @@ function FeatureCard({
 
   return (
     <div
-      className="relative rounded-xl border border-[#d8dce5] bg-white p-5 overflow-hidden transition-all duration-300 dark:border-white/10 dark:bg-[#111c2e]"
-      style={{ height: expanded ? 'auto' : '80px', minHeight: expanded ? '200px' : '80px' }}
+      className="rounded-xl border border-[#d8dce5] bg-white p-5 overflow-hidden transition-all duration-300 hover:shadow-xl dark:border-white/10 dark:bg-[#111c2e]"
+      style={{
+        height: expanded ? 'auto' : '88px',
+        minHeight: expanded ? '220px' : '88px',
+        zIndex: expanded ? 10 : 1,
+        position: 'relative',
+      }}
       onMouseEnter={() => {
         if (isHoverDevice()) setExpanded(true);
       }}
@@ -84,7 +89,7 @@ function FeatureCard({
         </h3>
       </div>
 
-      <p className="text-sm text-[#6B7280] leading-relaxed mb-4 dark:text-[#94a3b8]">
+      <p className={`text-sm text-[#6B7280] leading-relaxed mb-4 dark:text-[#94a3b8] transition-opacity duration-200 ${expanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         {description}
       </p>
 
@@ -97,7 +102,7 @@ function FeatureCard({
             onNavigate(targetSection);
           }
         }}
-        className="w-full gap-2 border-0 bg-[#173A8A] font-semibold text-white hover:bg-[#102C74]"
+        className={`w-full gap-2 border-0 bg-[#173A8A] font-semibold text-white hover:bg-[#102C74] transition-opacity duration-200 ${expanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         style={{
           fontFamily: 'Rajdhani, sans-serif',
           letterSpacing: '0.05em',
@@ -707,7 +712,7 @@ export function HeroSection({ onNavigate, teams = [], loading }: HeroSectionProp
             <p className="mt-2 text-sm text-[#6B7280]">Tap or hover to expand</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <FeatureCard
               icon={<Calculator className="h-6 w-6" />}
               title="Simulator"
@@ -812,7 +817,7 @@ export function HeroSection({ onNavigate, teams = [], loading }: HeroSectionProp
           </p>
 
           <div className="rounded-xl border border-[#d8dce5] bg-[#fdfcf7] p-4 dark:border-white/10 dark:bg-[#1d2432]">
-            <p className="font-semibold text-[#081B4B] dark:text-white mb-2">What is Seed?</p>
+            <p className="font-semibold text-[#081B4B] dark:text-white mb-2">What is  Seed?</p>
             <p>
               The <strong>Seed</strong> is an optional number that makes the simulation reproducible.
               By default, each run uses different randomness and gives slightly different results.
