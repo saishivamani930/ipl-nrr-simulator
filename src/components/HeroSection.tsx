@@ -812,7 +812,7 @@ export function HeroSection({ onNavigate, teams = [], loading }: HeroSectionProp
           </p>
 
           <div className="rounded-xl border border-[#d8dce5] bg-[#fdfcf7] p-4 dark:border-white/10 dark:bg-[#1d2432]">
-            <p className="font-semibold text-[#081B4B] dark:text-white mb-2">What is the Seed?</p>
+            <p className="font-semibold text-[#081B4B] dark:text-white mb-2">What is Seed?</p>
             <p>
               The <strong>Seed</strong> is an optional number that makes the simulation reproducible.
               By default, each run uses different randomness and gives slightly different results.

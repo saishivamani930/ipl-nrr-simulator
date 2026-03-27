@@ -33,7 +33,10 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload?.length) {
     const d = payload[0].payload;
     return (
-      <div className="rounded-lg border border-white/10 bg-card px-3 py-2 shadow-xl">
+      <div
+        className="rounded-lg border border-white/10 bg-card px-3 py-2 shadow-xl pointer-events-none"
+        style={{ transform: "translateY(-110%)" }}
+      >
         <p className="text-xs font-mono text-muted-foreground">{d.scenario}</p>
         <p className="text-lg font-bold text-primary font-mono">{(d.probability * 100).toFixed(1)}%</p>
       </div>
@@ -114,6 +117,8 @@ export function MonteCarloPlanner({ teams }: MonteCarloPlannerProps) {
 
   // Show TBD fixtures beyond released schedule
   const [showTbd, setShowTbd] = useState(false);
+
+  const [allAdded, setAllAdded] = useState(false);
 
   const fixtureListRef = useRef<HTMLDivElement>(null);
   const hasTeams = teams.length > 0;
@@ -215,11 +220,12 @@ export function MonteCarloPlanner({ teams }: MonteCarloPlannerProps) {
   }
 
   function addAllUpcoming() {
-    const toAdd = filteredEspnFixtures
-      .map(f => ({ team1: f.team1, team2: f.team2, batting_first: "toss" as const }))
-      .filter(f => f.team1 && f.team2);
-    setFixtures(prev => [...prev, ...toAdd]);
-  }
+  const toAdd = filteredEspnFixtures
+    .map(f => ({ team1: f.team1, team2: f.team2, batting_first: "toss" as const }))
+    .filter(f => f.team1 && f.team2);
+  setFixtures(prev => [...prev, ...toAdd]);
+  setAllAdded(true);
+}
 
   function addDateRangeFixtures() {
     const toAdd = dateFilteredFixtures
@@ -549,10 +555,13 @@ export function MonteCarloPlanner({ teams }: MonteCarloPlannerProps) {
                   variant="outline"
                   size="sm"
                   onClick={addAllUpcoming}
+                  disabled={allAdded}
                   className="w-full border-white/10 bg-white/5 hover:bg-white/10 text-xs gap-1.5"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  Add All {filteredEspnFixtures.length} Fixtures
+                  {allAdded
+                    ? `✓ Added All ${filteredEspnFixtures.length} Fixtures`
+                    : `Add All ${filteredEspnFixtures.length} Fixtures`}
                 </Button>
               )}
             </div>

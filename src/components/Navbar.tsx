@@ -6,10 +6,11 @@ import { useTheme } from "@/hooks/useTheme";
 
 const navItems = [
   { to: "/", label: "Home" },
+   { to: "/schedule", label: "Schedule" },
   { to: "/simulate", label: "Simulator" },
   { to: "/planner", label: "Predictor" },
   { to: "/requirements", label: "Scenarios" },
-  { to: "/schedule", label: "Schedule" },
+ 
   
 ];
 
