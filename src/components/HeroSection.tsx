@@ -17,8 +17,6 @@ import type { Team } from '@/types/api';
 
 interface HeroSectionProps {
   onNavigate: (section: string) => void;
-  teams?: Team[];
-  loading?: boolean;
 }
 
 function FeatureCard({
@@ -426,8 +424,27 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
   );
 }
 
-export function HeroSection({ onNavigate, teams = [], loading }: HeroSectionProps) {
+export function HeroSection({ onNavigate }: HeroSectionProps) {
   const [showMonteCarloHelp, setShowMonteCarloHelp] = useState(false);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
+    useEffect(() => {
+    const loadStandings = () => {
+      fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/standings?season=2026`)
+        .then(r => r.json())
+        .then(data => {
+          const list = data?.data?.teams ?? data?.teams ?? [];
+          setTeams(list);
+        })
+        .catch(() => setTeams([]))
+        .finally(() => setLoading(false));
+    };
+
+    loadStandings();
+
+    const interval = setInterval(loadStandings, 60000);
+    return () => clearInterval(interval);
+  }, []);
   return (
     <div className="flex min-h-screen flex-col bg-[#eef1f6] text-[#081B4B] dark:bg-[#0d1b2e] dark:text-white">
       <section className="relative overflow-hidden bg-[#173A8A] px-4 py-16 sm:py-20 text-center">
