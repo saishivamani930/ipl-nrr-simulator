@@ -17,7 +17,14 @@ import type { Team, StandingsResponse } from "@/types/api";
 
 import Schedule from "./pages/Schedule";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10_000),
+    },
+  },
+});
 
 function toErrorMessage(err: unknown): string | undefined {
   if (err instanceof Error) return err.message;
@@ -29,10 +36,14 @@ function AppRoutes() {
   const { data, isLoading, error } = useQuery<StandingsResponse, Error>({
     queryKey: ["standings", 2026, "live"],
     queryFn: () => getStandings({ season: 2026, source: "live" }),
-    retry: 1,
-    staleTime: 60_000,
+    retry: 2,
+    // Treat data as fresh for only 90s (backend cache is 120s, so this stays in sync)
+    staleTime: 90_000,
     gcTime: 10 * 60_000,
-    refetchOnWindowFocus: false,
+    // Re-fetch every 2 minutes so the table auto-updates without a page reload
+    refetchInterval: 2 * 60_000,
+    // Re-fetch when the user comes back to the tab
+    refetchOnWindowFocus: true,
   });
 
   const teams: Team[] = data?.standings ?? [];
