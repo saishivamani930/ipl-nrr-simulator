@@ -236,21 +236,21 @@ function normalizeMonteCarlo(payload: unknown): MonteCarloResult {
   } as MonteCarloResult;
 }
 
-// ---- Fixture normalizer ----
+// ---- Fixture type ----
 export interface EspnFixture {
   match_id: string;
-  date: string;          // ISO date string
+  date: string;
   team1: string;
   team2: string;
   team1_code: string;
   team2_code: string;
   status: "upcoming" | "completed" | "live";
   venue?: string;
+  /** Team code of the winner — present only for completed matches where ESPN returned it */
+  winner?: string;
 }
 
 function normalizeFixtures(payload: unknown): EspnFixture[] {
-  const root = isRecord(payload) ? payload : {};
-  // backend may return { fixtures: [...] } or { data: { fixtures: [...] } } or just [...]
   const arr =
     getArray(payload, "fixtures") ??
     getArray(getRecord(payload, "data") ?? {}, "fixtures") ??
@@ -258,16 +258,22 @@ function normalizeFixtures(payload: unknown): EspnFixture[] {
 
   return arr
     .filter(isRecord)
-    .map((r) => ({
-      match_id: getString(r, "match_id") ?? getString(r, "id") ?? String(Math.random()),
-      date: getString(r, "date") ?? getString(r, "match_date") ?? "",
-      team1: getString(r, "team1") ?? getString(r, "home_team") ?? "",
-      team2: getString(r, "team2") ?? getString(r, "away_team") ?? "",
-      team1_code: getString(r, "team1_code") ?? getString(r, "team1") ?? "",
-      team2_code: getString(r, "team2_code") ?? getString(r, "team2") ?? "",
-      status: (getString(r, "status") as EspnFixture["status"]) ?? "upcoming",
-      venue: getString(r, "venue") ?? undefined,
-    }));
+    .map((r) => {
+      const fixture: EspnFixture = {
+        match_id: getString(r, "match_id") ?? getString(r, "id") ?? String(Math.random()),
+        date: getString(r, "date") ?? getString(r, "match_date") ?? "",
+        team1: getString(r, "team1") ?? getString(r, "home_team") ?? "",
+        team2: getString(r, "team2") ?? getString(r, "away_team") ?? "",
+        team1_code: getString(r, "team1_code") ?? getString(r, "team1") ?? "",
+        team2_code: getString(r, "team2_code") ?? getString(r, "team2") ?? "",
+        status: (getString(r, "status") as EspnFixture["status"]) ?? "upcoming",
+        venue: getString(r, "venue") ?? undefined,
+      };
+      // Preserve winner when the backend returns it (completed matches only)
+      const winner = getString(r, "winner");
+      if (winner) fixture.winner = winner;
+      return fixture;
+    });
 }
 
 // ---- Exported API functions ----

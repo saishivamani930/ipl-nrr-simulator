@@ -321,6 +321,9 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
     .finally(() => setFixtureLoading(null));
 };
 
+  
+
+
   function formatShortDate(dateStr: string) {
     try {
       return new Date(dateStr).toLocaleDateString('en-IN', {
@@ -399,6 +402,7 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
                 return (
                   <>
                     {/* Main team row */}
+
                     <tr
                       key={`row-${teamCode}`}
                       className={`border-b border-[#e7eaf1] transition-colors hover:bg-[#f8faff] dark:border-white/5 dark:hover:bg-[#1a2a42] ${
@@ -549,8 +553,14 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
                                       const won =
                                         f.winner_code === teamCode ||
                                         f.winner === teamCode ||
-                                        (f.result && f.result.toLowerCase().includes('won') &&
-                                          f.result.toLowerCase().includes(teamCode.toLowerCase()));
+                                        (f.result &&
+                                          f.result.toLowerCase().includes('won') &&
+                                          (() => {
+                                            const myTeamName = f.team1_code === teamCode ? f.team1 : f.team2;
+                                            return myTeamName
+                                              ? f.result.toLowerCase().startsWith(myTeamName.toLowerCase())
+                                              : false;
+                                          })());
                                       return (
                                         <div
                                           key={i}
