@@ -324,7 +324,7 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
                             : 'text-[#6B7280] dark:text-[#94a3b8]'
                         }`}
                       >
-                        {team.position}
+                        {idx+1}
                       </span>
                     </td>
 
@@ -434,7 +434,11 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
         .then(r => r.json())
         .then(data => {
           const list = data?.data?.teams ?? data?.teams ?? [];
-          setTeams(list);
+          const sorted = [...list].sort((a, b) => {
+            if (b.points !== a.points) return b.points - a.points;
+            return (b.nrr ?? 0) - (a.nrr ?? 0);
+          });
+          setTeams(sorted);
         })
         .catch(() => setTeams([]))
         .finally(() => setLoading(false));
