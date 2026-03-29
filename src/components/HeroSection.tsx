@@ -712,7 +712,7 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
       </section>
 
       <section className="border-t border-[#d8dce5] bg-[#f7f8fb] px-4 py-12 sm:py-16 overflow-visible dark:border-white/10 dark:bg-[#0a1525]">
-        <div className="container mx-auto max-w-5xl overflow-visible">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 overflow-visible pb-4">
           <div className="mb-8 sm:mb-10 text-center">
             <p className="mb-2 font-mono text-xs uppercase tracking-widest text-[#f05a28]">
               Arsenal
