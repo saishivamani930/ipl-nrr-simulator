@@ -243,6 +243,9 @@ useEffect(() => {
   );
 }
 
+// Replace the LiveStandingsPanel function in your HeroSection.tsx with this one.
+// Everything else in the file stays the same.
+
 function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boolean }) {
   const TEAM_LOGOS: Record<string, string> = {
     CSK: '/logos/CSK.png',
@@ -257,8 +260,88 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
     LSG: '/logos/LSG.png',
   };
 
+  // Map full team names → codes (for fixture lookup)
+  const TEAM_NAME_TO_CODE: Record<string, string> = {
+    'Royal Challengers Bengaluru': 'RCB',
+    'Chennai Super Kings': 'CSK',
+    'Mumbai Indians': 'MI',
+    'Kolkata Knight Riders': 'KKR',
+    'Delhi Capitals': 'DC',
+    'Punjab Kings': 'PBKS',
+    'Rajasthan Royals': 'RR',
+    'Sunrisers Hyderabad': 'SRH',
+    'Gujarat Titans': 'GT',
+    'Lucknow Super Giants': 'LSG',
+  };
+
+  // Which team row is expanded (null = none)
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+
+  // Cache: teamCode → fixture list
+  const [fixtureCache, setFixtureCache] = useState<Record<string, any[]>>({});
+  const [fixtureLoading, setFixtureLoading] = useState<string | null>(null);
+
+  const toggleTeam = (teamCode: string) => {
+  if (expandedTeam === teamCode) {
+    setExpandedTeam(null);
+    return;
+  }
+  setExpandedTeam(teamCode);
+
+  // Already cached — no fetch needed
+  if (fixtureCache[teamCode]) return;
+
+  setFixtureLoading(teamCode);
+  fetch(
+    `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/fixtures?season=2026`
+  )
+    .then(r => r.json())
+    .then(data => {
+      const allFixtures: any[] = data?.fixtures ?? data?.data?.fixtures ?? [];
+
+      // Filter to this team using team1_code / team2_code (confirmed field names)
+      const teamMatches = allFixtures.filter(
+        f => f.team1_code === teamCode || f.team2_code === teamCode
+      );
+
+      // Cache ALL teams at once since we have the full list anyway
+      const grouped: Record<string, any[]> = {};
+      for (const f of allFixtures) {
+        [f.team1_code, f.team2_code].forEach(code => {
+          if (!code) return;
+          if (!grouped[code]) grouped[code] = [];
+          grouped[code].push(f);
+        });
+      }
+      setFixtureCache(prev => ({ ...prev, ...grouped }));
+    })
+    .catch(() => {
+      setFixtureCache(prev => ({ ...prev, [teamCode]: [] }));
+    })
+    .finally(() => setFixtureLoading(null));
+};
+
+  function formatShortDate(dateStr: string) {
+    try {
+      return new Date(dateStr).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+      });
+    } catch {
+      return dateStr;
+    }
+  }
+
+  // Opponent name: given a fixture and this team's code, return the other side
+  function getOpponent(f: any, teamCode: string): string {
+  return f.team1_code === teamCode
+    ? (f.team2_code ?? f.team2)
+    : (f.team1_code ?? f.team1);
+}
+
   return (
     <div className="overflow-hidden rounded-2xl border border-[#d8dce5] bg-white dark:border-white/10 dark:bg-[#111c2e]">
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-[#d8dce5] bg-[#173A8A] px-5 py-3">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-green-400" />
@@ -288,118 +371,293 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
               <tr className="border-b border-[#d8dce5] bg-[#f5f7fb] dark:border-white/5 dark:bg-[#0d1929]">
                 <th className="w-6 px-2 py-2 text-left font-mono text-xs text-[#6B7280] dark:text-[#94a3b8]">#</th>
                 <th className="px-2 py-2 text-left font-mono text-xs text-[#6B7280] dark:text-[#94a3b8]">Team</th>
-                <th className="px-2 py-2 text-center font-mono text-xs text-[#6B7280] dark:text-[#94a3b8] hidden sm:table-cell">M</th>
-                <th className="px-2 py-2 text-center font-mono text-xs text-[#6B7280] dark:text-[#94a3b8] hidden sm:table-cell">W</th>
-                <th className="px-2 py-2 text-center font-mono text-xs text-[#6B7280] dark:text-[#94a3b8] hidden sm:table-cell">L</th>
+                <th className="hidden px-2 py-2 text-center font-mono text-xs text-[#6B7280] dark:text-[#94a3b8] sm:table-cell">M</th>
+                <th className="hidden px-2 py-2 text-center font-mono text-xs text-[#6B7280] dark:text-[#94a3b8] sm:table-cell">W</th>
+                <th className="hidden px-2 py-2 text-center font-mono text-xs text-[#6B7280] dark:text-[#94a3b8] sm:table-cell">L</th>
                 <th className="px-2 py-2 text-center font-mono text-xs text-[#6B7280] dark:text-[#94a3b8] sm:hidden">W-L</th>
                 <th className="px-2 py-2 text-center font-mono text-xs text-[#6B7280] dark:text-[#94a3b8]">Pts</th>
                 <th className="px-2 py-2 text-right font-mono text-xs text-[#6B7280] dark:text-[#94a3b8]">NRR</th>
+                {/* Arrow column */}
+                <th className="w-8 px-2 py-2" />
               </tr>
             </thead>
+
             <tbody>
               {teams.map((team, idx) => {
                 const isTop4 = idx < 4;
                 const isQualBoundary = idx === 3;
                 const nrr = team.nrr ?? 0;
+                const teamCode = team.code ?? TEAM_NAME_TO_CODE[team.team] ?? team.team;
+                const isExpanded = expandedTeam === teamCode;
+                const fixtures: any[] = fixtureCache[teamCode] ?? [];
+                const isLoadingFixtures = fixtureLoading === teamCode;
+
+                // Split into completed and upcoming
+                const completed = fixtures.filter(f => f.status === 'completed' || f.result);
+                const upcoming = fixtures.filter(f => f.status === 'upcoming' || (!f.result && !f.status));
 
                 return (
-                  <tr
-                    key={team.team}
-                    className={`border-b border-[#e7eaf1] transition-colors hover:bg-[#f8faff] dark:border-white/5 dark:hover:bg-[#1a2a42] ${
-                      isQualBoundary ? 'border-b-2 border-b-[#173A8A]' : ''
-                    }`}
-                  >
-                    <td className="px-2 py-2">
-                      <span
-                        className={`font-mono text-sm font-semibold ${
-                          isTop4
-                            ? 'text-[#173A8A] dark:text-primary'
-                            : 'text-[#6B7280] dark:text-[#94a3b8]'
-                        }`}
-                      >
-                        {idx+1}
-                      </span>
-                    </td>
+                  <>
+                    {/* Main team row */}
+                    <tr
+                      key={`row-${teamCode}`}
+                      className={`border-b border-[#e7eaf1] transition-colors hover:bg-[#f8faff] dark:border-white/5 dark:hover:bg-[#1a2a42] ${
+                        isQualBoundary ? 'border-b-2 border-b-[#173A8A]' : ''
+                      }`}
+                    >
+                      <td className="px-2 py-2">
+                        <span
+                          className={`font-mono text-sm font-semibold ${
+                            isTop4
+                              ? 'text-[#173A8A] dark:text-primary'
+                              : 'text-[#6B7280] dark:text-[#94a3b8]'
+                          }`}
+                        >
+                          {idx + 1}
+                        </span>
+                      </td>
 
-                    <td className="px-2 py-2">
-                      <div className="flex items-center gap-1.5">
-                        {TEAM_LOGOS[team.code ?? ''] && (
-                          <img
-                            src={TEAM_LOGOS[team.code ?? '']}
-                            alt={team.team}
-                            className="h-5 w-5 object-contain flex-shrink-0"
-                            onError={e => {
-                              e.currentTarget.style.display = 'none';
+                      <td className="px-2 py-2">
+                        <div className="flex items-center gap-1.5">
+                          {TEAM_LOGOS[teamCode] && (
+                            <img
+                              src={TEAM_LOGOS[teamCode]}
+                              alt={team.team}
+                              className="h-5 w-5 flex-shrink-0 object-contain"
+                              onError={e => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          )}
+                          <span
+                            className={`hidden text-sm font-semibold sm:inline ${
+                              isTop4
+                                ? 'text-[#081B4B] dark:text-white'
+                                : 'text-[#334155] dark:text-[#94a3b8]'
+                            }`}
+                            style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                          >
+                            {team.team}
+                          </span>
+                          <span
+                            className={`text-xs font-bold sm:hidden ${
+                              isTop4
+                                ? 'text-[#081B4B] dark:text-white'
+                                : 'text-[#334155] dark:text-[#94a3b8]'
+                            }`}
+                            style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                          >
+                            {teamCode}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="hidden px-2 py-2 text-center font-mono text-xs text-[#6B7280] dark:text-[#94a3b8] sm:table-cell">
+                        {team.matches}
+                      </td>
+                      <td className="hidden px-2 py-2 text-center font-mono text-xs text-green-600 dark:text-green-400 sm:table-cell">
+                        {team.won ?? '—'}
+                      </td>
+                      <td className="hidden px-2 py-2 text-center font-mono text-xs text-red-500 dark:text-red-400 sm:table-cell">
+                        {team.lost ?? '—'}
+                      </td>
+
+                      <td className="px-2 py-2 text-center font-mono text-xs sm:hidden">
+                        <span className="text-green-600">{team.won ?? 0}</span>
+                        <span className="text-[#6B7280]">-</span>
+                        <span className="text-red-500">{team.lost ?? 0}</span>
+                      </td>
+
+                      <td className="px-2 py-2 text-center">
+                        <span className="font-mono text-sm font-bold text-[#081B4B] dark:text-white">
+                          {team.points}
+                        </span>
+                      </td>
+
+                      <td className="px-2 py-2 text-right">
+                        <span
+                          className={`inline-flex items-center justify-end gap-1 font-mono text-xs ${
+                            nrr > 0
+                              ? 'text-green-600 dark:text-green-400'
+                              : nrr < 0
+                              ? 'text-red-500 dark:text-red-400'
+                              : 'text-[#6B7280] dark:text-[#94a3b8]'
+                          }`}
+                        >
+                          {nrr > 0 ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : nrr < 0 ? (
+                            <TrendingDown className="h-3 w-3" />
+                          ) : null}
+                          {nrr > 0 ? '+' : ''}
+                          {Math.abs(nrr) < 0.0005 ? '0.000' : nrr.toFixed(3)}
+                        </span>
+                      </td>
+
+                      {/* Expand / collapse arrow */}
+                      <td className="px-2 py-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => toggleTeam(teamCode)}
+                          className="flex h-6 w-6 items-center justify-center rounded text-[#6B7280] transition-colors hover:bg-[#eef4ff] hover:text-[#173A8A] dark:text-[#94a3b8] dark:hover:bg-[#1a2a42] dark:hover:text-white"
+                          aria-label={isExpanded ? 'Collapse fixtures' : 'Expand fixtures'}
+                        >
+                          {/* Chevron rotates when expanded */}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{
+                              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                              transition: 'transform 0.2s ease',
                             }}
-                          />
-                        )}
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
 
-                        <span
-                          className={`text-sm font-semibold hidden sm:inline ${
-                            isTop4
-                              ? 'text-[#081B4B] dark:text-white'
-                              : 'text-[#334155] dark:text-[#94a3b8]'
-                          }`}
-                          style={{ fontFamily: 'Rajdhani, sans-serif' }}
-                        >
-                          {team.team}
-                        </span>
+                    {/* Expanded fixtures row — spans full width */}
+                    {isExpanded && (
+                      <tr key={`expanded-${teamCode}`} className="bg-[#f5f7fb] dark:bg-[#0d1929]">
+                        <td colSpan={9} className="px-4 py-3">
+                          {isLoadingFixtures ? (
+                            <div className="flex items-center gap-2 py-2 text-xs text-[#6B7280]">
+                              <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#173A8A] border-t-transparent" />
+                              Loading fixtures...
+                            </div>
+                          ) : fixtures.length === 0 ? (
+                            <p className="py-2 text-xs text-[#6B7280] dark:text-[#94a3b8]">
+                              No fixture data available.
+                            </p>
+                          ) : (
+                            <div className="space-y-3">
+                              {/* Completed matches */}
+                              {completed.length > 0 && (
+                                <div>
+                                  <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-[#6B7280] dark:text-[#94a3b8]">
+                                    Results
+                                  </p>
+                                  <div className="space-y-1.5">
+                                    {completed.map((f, i) => {
+                                      const opponent = getOpponent(f, teamCode);
+                                      const won =
+                                        f.winner_code === teamCode ||
+                                        f.winner === teamCode ||
+                                        (f.result && f.result.toLowerCase().includes('won') &&
+                                          f.result.toLowerCase().includes(teamCode.toLowerCase()));
+                                      return (
+                                        <div
+                                          key={i}
+                                          className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border border-[#e7eaf1] bg-white px-3 py-2 dark:border-white/5 dark:bg-[#111c2e]"
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            {/* W / L badge */}
+                                            <span
+                                              className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                                                won
+                                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                                                  : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'
+                                              }`}
+                                            >
+                                              {won ? 'W' : 'L'}
+                                            </span>
+                                            <span
+                                              className="text-xs font-semibold text-[#081B4B] dark:text-white"
+                                              style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                                            >
+                                              vs {opponent}
+                                            </span>
+                                            {f.match_number && (
+                                              <span className="text-[10px] text-[#6B7280]">
+                                                Match {f.match_number}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="flex items-center gap-3">
+                                            {f.date && (
+                                              <span className="font-mono text-[10px] text-[#6B7280]">
+                                                {formatShortDate(f.date)}
+                                              </span>
+                                            )}
+                                            {f.result && (
+                                              <span
+                                                className={`text-[10px] font-medium ${
+                                                  won
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : 'text-red-500 dark:text-red-400'
+                                                }`}
+                                              >
+                                                {f.result}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
 
-                        <span
-                          className={`text-xs font-bold sm:hidden ${
-                            isTop4
-                              ? 'text-[#081B4B] dark:text-white'
-                              : 'text-[#334155] dark:text-[#94a3b8]'
-                          }`}
-                          style={{ fontFamily: 'Rajdhani, sans-serif' }}
-                        >
-                          {team.code ?? team.team}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="px-2 py-2 text-center font-mono text-xs text-[#6B7280] dark:text-[#94a3b8] hidden sm:table-cell">
-                      {team.matches}
-                    </td>
-                    <td className="px-2 py-2 text-center font-mono text-xs text-green-600 dark:text-green-400 hidden sm:table-cell">
-                      {team.won ?? '—'}
-                    </td>
-                    <td className="px-2 py-2 text-center font-mono text-xs text-red-500 dark:text-red-400 hidden sm:table-cell">
-                      {team.lost ?? '—'}
-                    </td>
-
-                    <td className="px-2 py-2 text-center font-mono text-xs sm:hidden">
-                      <span className="text-green-600">{team.won ?? 0}</span>
-                      <span className="text-[#6B7280]">-</span>
-                      <span className="text-red-500">{team.lost ?? 0}</span>
-                    </td>
-
-                    <td className="px-2 py-2 text-center">
-                      <span className="font-mono text-sm font-bold text-[#081B4B] dark:text-white">
-                        {team.points}
-                      </span>
-                    </td>
-
-                    <td className="px-2 py-2 text-right">
-                      <span
-                        className={`inline-flex items-center justify-end gap-1 font-mono text-xs ${
-                          nrr > 0
-                            ? 'text-green-600 dark:text-green-400'
-                            : nrr < 0
-                            ? 'text-red-500 dark:text-red-400'
-                            : 'text-[#6B7280] dark:text-[#94a3b8]'
-                        }`}
-                      >
-                        {nrr > 0 ? (
-                          <TrendingUp className="h-3 w-3" />
-                        ) : nrr < 0 ? (
-                          <TrendingDown className="h-3 w-3" />
-                        ) : null}
-                        {nrr > 0 ? '+' : ''}
-                        {Math.abs(nrr) < 0.0005 ? '0.000' : nrr.toFixed(3)}
-                      </span>
-                    </td>
-                  </tr>
+                              {/* Upcoming matches */}
+                              {upcoming.length > 0 && (
+                                <div>
+                                  <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-[#6B7280] dark:text-[#94a3b8]">
+                                    Upcoming
+                                  </p>
+                                  <div className="space-y-1.5">
+                                    {upcoming.map((f, i) => {
+                                      const opponent = getOpponent(f, teamCode);
+                                      return (
+                                        <div
+                                          key={i}
+                                          className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border border-[#e7eaf1] bg-white px-3 py-2 dark:border-white/5 dark:bg-[#111c2e]"
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#eef4ff] text-[10px] font-bold text-[#173A8A] dark:bg-[#1a2a42] dark:text-[#93c5fd]">
+                                              —
+                                            </span>
+                                            <span
+                                              className="text-xs font-semibold text-[#081B4B] dark:text-white"
+                                              style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                                            >
+                                              vs {opponent}
+                                            </span>
+                                            {f.match_number && (
+                                              <span className="text-[10px] text-[#6B7280]">
+                                                Match {f.match_number}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="flex items-center gap-3">
+                                            {f.date && (
+                                              <span className="font-mono text-[10px] text-[#6B7280]">
+                                                {formatShortDate(f.date)}
+                                              </span>
+                                            )}
+                                            {f.venue && (
+                                              <span className="hidden text-[10px] text-[#6B7280] sm:inline">
+                                                {f.venue}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 );
               })}
             </tbody>
@@ -416,6 +674,7 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
     </div>
   );
 }
+
 
 export function HeroSection({ onNavigate }: HeroSectionProps) {
   const [showMonteCarloHelp, setShowMonteCarloHelp] = useState(false);
