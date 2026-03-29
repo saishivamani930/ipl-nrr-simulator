@@ -19,6 +19,7 @@ interface HeroSectionProps {
   onNavigate: (section: string) => void;
 }
 
+// REPLACE the FeatureCard function with this:
 function FeatureCard({
   icon,
   title,
@@ -39,35 +40,19 @@ function FeatureCard({
   onHelpClick?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-
   const isHoverDevice = () => window.matchMedia('(hover: hover)').matches;
 
   return (
     <div
-      className="rounded-xl border border-[#d8dce5] bg-white p-5 overflow-hidden transition-all duration-300 hover:shadow-xl dark:border-white/10 dark:bg-[#111c2e]"
-      style={{
-        height: expanded ? 'auto' : '88px',
-        minHeight: expanded ? '220px' : '88px',
-        zIndex: expanded ? 10 : 1,
-        position: 'relative',
-      }}
-      onMouseEnter={() => {
-        if (isHoverDevice()) setExpanded(true);
-      }}
-      onMouseLeave={() => {
-        if (isHoverDevice()) setExpanded(false);
-      }}
-      onClick={() => {
-        if (!isHoverDevice()) setExpanded(prev => !prev);
-      }}
+      className="rounded-xl border border-[#d8dce5] bg-white p-5 transition-all duration-300 hover:shadow-xl dark:border-white/10 dark:bg-[#111c2e] relative"
+      onMouseEnter={() => { if (isHoverDevice()) setExpanded(true); }}
+      onMouseLeave={() => { if (isHoverDevice()) setExpanded(false); }}
+      onClick={() => { if (!isHoverDevice()) setExpanded(prev => !prev); }}
     >
       {showHelp && (
         <button
           type="button"
-          onClick={e => {
-            e.stopPropagation();
-            onHelpClick?.();
-          }}
+          onClick={e => { e.stopPropagation(); onHelpClick?.(); }}
           className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border border-[#d8dce5] bg-[#f8fafc] text-[#173A8A] hover:bg-[#eef4ff] dark:border-white/10 dark:bg-[#16243a] dark:text-white dark:hover:bg-[#1d2e49]"
           aria-label={`How ${title} works`}
         >
@@ -87,28 +72,36 @@ function FeatureCard({
         </h3>
       </div>
 
-      <p className={`text-sm text-[#6B7280] leading-relaxed mb-4 dark:text-[#94a3b8] transition-opacity duration-200 ${expanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        {description}
-      </p>
-
-      <Button
-        onClick={e => {
-          e.stopPropagation();
-          if (targetSection === 'standings-section') {
-            document.getElementById('standings-section')?.scrollIntoView({ behavior: 'smooth' });
-          } else {
-            onNavigate(targetSection);
-          }
-        }}
-        className={`w-full gap-2 border-0 bg-[#173A8A] font-semibold text-white hover:bg-[#102C74] transition-opacity duration-200 ${expanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      {/* Expandable content — no height tricks, just show/hide with smooth transition */}
+      <div
         style={{
-          fontFamily: 'Rajdhani, sans-serif',
-          letterSpacing: '0.05em',
-          fontSize: '0.875rem',
+          maxHeight: expanded ? '200px' : '0px',
+          overflow: 'hidden',
+          transition: 'max-height 0.3s ease',
         }}
       >
-        {buttonLabel} <ArrowRight className="h-4 w-4" />
-      </Button>
+        <p className="text-sm text-[#6B7280] leading-relaxed mb-4 dark:text-[#94a3b8]">
+          {description}
+        </p>
+        <Button
+          onClick={e => {
+            e.stopPropagation();
+            if (targetSection === 'standings-section') {
+              document.getElementById('standings-section')?.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              onNavigate(targetSection);
+            }
+          }}
+          className="w-full gap-2 border-0 bg-[#173A8A] font-semibold text-white hover:bg-[#102C74]"
+          style={{
+            fontFamily: 'Rajdhani, sans-serif',
+            letterSpacing: '0.05em',
+            fontSize: '0.875rem',
+          }}
+        >
+          {buttonLabel} <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }
@@ -733,7 +726,7 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
             <p className="mt-2 text-sm text-[#6B7280]">Tap or hover to expand</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
             <FeatureCard
               icon={<Calculator className="h-6 w-6" />}
               title="Simulator"
