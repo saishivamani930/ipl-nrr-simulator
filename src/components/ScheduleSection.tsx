@@ -143,6 +143,11 @@ export function ScheduleSection() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    if (fixtures.length > 0) {
+      console.log("Match 1:", fixtures[0]);
+    }
+  }, [fixtures]);
   async function load() {
     setLoading(true);
     setError(null);
