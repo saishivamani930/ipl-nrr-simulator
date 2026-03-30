@@ -361,15 +361,15 @@ export function ScheduleSection() {
                           <div className="flex items-center justify-center gap-4">
                             <div className="relative">
                               <TeamBadge code={f.team1_code} name={f.team1} />
-                              {isCompleted && (f as any).winner && (
-                                <span className={`absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${(f as any).winner === f.team1_code ? "bg-green-500" : "bg-red-500"}`} />
+                              {isCompleted && (f as any).winner_code && (
+                                <span className={`absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${(f as any).winner_code === f.team1_code ? "bg-green-500" : "bg-red-500"}`} />
                               )}
                             </div>
                             <span className="text-lg font-bold text-gray-400 dark:text-white/40 font-mono">vs</span>
                             <div className="relative">
                               <TeamBadge code={f.team2_code} name={f.team2} />
-                              {isCompleted && (f as any).winner && (
-                                <span className={`absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${(f as any).winner === f.team2_code ? "bg-green-500" : "bg-red-500"}`} />
+                              {isCompleted && (f as any).winner_code && (
+                                <span className={`absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white ${(f as any).winner_code === f.team2_code ? "bg-green-500" : "bg-red-500"}`} />
                               )}
                             </div>
                           </div>
