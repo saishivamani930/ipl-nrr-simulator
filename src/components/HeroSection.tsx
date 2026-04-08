@@ -396,9 +396,9 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
                 const isLoadingFixtures = fixtureLoading === teamCode;
 
                 // Split into completed and upcoming
-                const completed = fixtures.filter(f => f.status === 'completed' || f.result);
                 const noResult  = fixtures.filter(f => f.status === 'no_result');
-                const upcoming = fixtures.filter(f => f.status === 'upcoming' || (!f.result && !f.status));
+                const completed = fixtures.filter(f => f.status !== 'no_result' && (f.status === 'completed' || f.result));
+                const upcoming  = fixtures.filter(f => f.status === 'upcoming' || (!f.result && !f.status && f.status !== 'no_result'));
 
                 return (
                   <>
