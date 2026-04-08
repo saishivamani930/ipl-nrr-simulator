@@ -244,7 +244,7 @@ export interface EspnFixture {
   team2: string;
   team1_code: string;
   team2_code: string;
-  status: "upcoming" | "completed" | "live";
+  status: "upcoming" | "completed" | "live" |  "no_result" ;
   venue?: string;
   /** Team code of the winner — present only for completed matches where ESPN returned it */
   winner?: string;

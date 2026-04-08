@@ -182,8 +182,9 @@ export function ScheduleSection() {
   }, [fixtures]);
 
   const filtered = useMemo(() => fixtures.filter(f => {
-    if (statusFilter === "upcoming" && f.status === "completed") return false;
-    if (statusFilter === "completed" && f.status !== "completed") return false;
+    const isDone = f.status === "completed" || f.status === "no_result";
+    if (statusFilter === "upcoming" && isDone) return false;
+    if (statusFilter === "completed" && !isDone) return false;
     if (teamFilter && f.team1 !== teamFilter && f.team2 !== teamFilter) return false;
     if (venueFilter && f.venue !== venueFilter) return false;
     return true;
