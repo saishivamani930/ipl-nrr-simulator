@@ -397,6 +397,7 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
 
                 // Split into completed and upcoming
                 const completed = fixtures.filter(f => f.status === 'completed' || f.result);
+                const noResult  = fixtures.filter(f => f.status === 'no_result');
                 const upcoming = fixtures.filter(f => f.status === 'upcoming' || (!f.result && !f.status));
 
                 return (
@@ -613,6 +614,47 @@ function LiveStandingsPanel({ teams, loading }: { teams: Team[]; loading?: boole
                                   </div>
                                 </div>
                               )}
+
+                            {noResult.length > 0 && (
+                              <div>
+                                <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-[#6B7280] dark:text-[#94a3b8]">
+                                  No Result
+                                </p>
+                                <div className="space-y-1.5">
+                                  {noResult.map((f, i) => {
+                                    const opponent = getOpponent(f, teamCode);
+                                    return (
+                                      <div
+                                        key={i}
+                                        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border border-[#e7eaf1] bg-white px-3 py-2 dark:border-white/5 dark:bg-[#111c2e]"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-[10px] font-bold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                            N
+                                          </span>
+                                          <span
+                                            className="text-xs font-semibold text-[#081B4B] dark:text-white"
+                                            style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                                          >
+                                            vs {opponent}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                          {f.date && (
+                                            <span className="font-mono text-[10px] text-[#6B7280]">
+                                              {formatShortDate(f.date)}
+                                            </span>
+                                          )}
+                                          <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                                            No Result
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
 
                               {/* Upcoming matches */}
                               {upcoming.length > 0 && (
