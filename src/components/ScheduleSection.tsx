@@ -334,7 +334,7 @@ export function ScheduleSection() {
                   <div className="space-y-3">
                     {dayFixtures.map(f => {
                       const matchNum = fixtures.indexOf(f) + 1;
-                      const isCompleted = f.status === "completed";
+                      const isCompleted = f.status === "completed" || f.status === "no_result";
 
                       return (
                         <div
@@ -352,8 +352,12 @@ export function ScheduleSection() {
                             <div className="flex items-center gap-3 text-xs font-mono text-muted-foreground">
                               {f.date && <span>{formatTime(f.date)}</span>}
                               {isCompleted && (
-                                <span className="rounded bg-green-500/10 px-1.5 py-0.5 text-[10px] text-green-400">
-                                  Completed
+                                <span className={`rounded px-1.5 py-0.5 text-[10px] ${
+                                  f.status === "no_result"
+                                    ? "bg-gray-500/10 text-gray-400"
+                                    : "bg-green-500/10 text-green-400"
+                                }`}>
+                                  {f.status === "no_result" ? "No Result" : "Completed"}
                                 </span>
                               )}
                             </div>
