@@ -116,7 +116,7 @@ export function ChaseMinScoreCalculator({ teams, defaultChaser }: Props) {
           values={targetTeams}
           onChange={setTargetTeams}
           teams={teams}
-          excludeTeams={[chasingTeam, opponentTeam]}
+          excludeTeams={[chasingTeam]}
           placeholder="Select one or more rivals..."
         />
 

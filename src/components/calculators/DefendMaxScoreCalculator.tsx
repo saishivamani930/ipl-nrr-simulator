@@ -141,7 +141,7 @@ export function DefendMaxScoreCalculator({ teams, defaultDefender }: Props) {
           values={targetTeams}
           onChange={setTargetTeams}
           teams={teams}
-          excludeTeams={[defendingTeam, opponentTeam]}
+          excludeTeams={[defendingTeam]}
           placeholder="Select one or more rivals..."
         />
 

@@ -11,12 +11,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MultiTeamSelect } from '../MultiTeamSelect';
-import { calculateChaseWinMaxBalls } from '@/lib/api';
+import { calculateDefendLoseMaxBalls } from '@/lib/api';
 import type { Team, ThresholdResult } from '@/types/api';
 
 interface Props {
   teams: Team[];
-  defaultChaser?: string;
+  defaultDefender?: string;
 }
 
 type AnyObj = Record<string, unknown>;
@@ -31,25 +31,25 @@ function ballsToOvers(balls: number): string {
   return b === 0 ? `${o} overs` : `${o}.${b} overs`;
 }
 
-export function ChaseWinMaxBallsCalculator({ teams, defaultChaser }: Props) {
-  const [chasingTeam, setChasingTeam] = useState(() => defaultChaser || '');
+export function DefendLoseMaxBallsCalculator({ teams, defaultDefender }: Props) {
+  const [defendingTeam, setDefendingTeam] = useState(() => defaultDefender || '');
   const [opponentTeam, setOpponentTeam] = useState('');
   const [targetTeams, setTargetTeams] = useState<string[]>([]);
-  const [targetScore, setTargetScore] = useState('');
+  const [defendingScore, setDefendingScore] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{ team: string; result: ThresholdResult }[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (defaultChaser) setChasingTeam(defaultChaser);
-  }, [defaultChaser]);
+    if (defaultDefender) setDefendingTeam(defaultDefender);
+  }, [defaultDefender]);
 
   const isFormValid = Boolean(
-    chasingTeam &&
+    defendingTeam &&
     opponentTeam &&
-    chasingTeam !== opponentTeam &&
+    defendingTeam !== opponentTeam &&
     targetTeams.length > 0 &&
-    targetScore
+    defendingScore
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,14 +63,13 @@ export function ChaseWinMaxBallsCalculator({ teams, defaultChaser }: Props) {
     try {
       const all = await Promise.all(
         targetTeams.map(async (targetTeam) => {
-          const data = await calculateChaseWinMaxBalls({
+          const data = await calculateDefendLoseMaxBalls({
             season: 2026,
             source: 'live',
-            chasing_team: chasingTeam,
+            defending_team: defendingTeam,
             opponent_team: opponentTeam,
             target_team: targetTeam,
-            target_score: parseInt(targetScore, 10),
-            assume_chase_balls: 120,
+            defending_score: parseInt(defendingScore, 10),
           });
 
           const extracted = isObj(data) && isObj(data.result) ? data.result : data;
@@ -95,10 +94,10 @@ export function ChaseWinMaxBallsCalculator({ teams, defaultChaser }: Props) {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Chasing Team</Label>
-            <Select value={chasingTeam} onValueChange={setChasingTeam}>
+            <Label className="text-xs text-muted-foreground">Defending Team</Label>
+            <Select value={defendingTeam} onValueChange={setDefendingTeam}>
               <SelectTrigger className="bg-secondary/50 border-white/10">
-                <SelectValue placeholder="Select chasing team" />
+                <SelectValue placeholder="Select defending team" />
               </SelectTrigger>
               <SelectContent>
                 {teams
@@ -120,7 +119,7 @@ export function ChaseWinMaxBallsCalculator({ teams, defaultChaser }: Props) {
               </SelectTrigger>
               <SelectContent>
                 {teams
-                  .filter((team) => team.team !== chasingTeam)
+                  .filter((team) => team.team !== defendingTeam)
                   .map((team) => (
                     <SelectItem key={team.team} value={team.team}>
                       {team.team}
@@ -131,24 +130,25 @@ export function ChaseWinMaxBallsCalculator({ teams, defaultChaser }: Props) {
           </div>
         </div>
 
+        {/* NOTE: opponent NOT excluded — you may want to stay above them on NRR too */}
         <MultiTeamSelect
           label="Target Teams (to stay above on NRR)"
           values={targetTeams}
           onChange={setTargetTeams}
           teams={teams}
-          excludeTeams={[chasingTeam]}
+          excludeTeams={[defendingTeam]}
           placeholder="Select one or more rivals..."
         />
 
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Target to Chase (runs)</Label>
+          <Label className="text-xs text-muted-foreground">Your Score (batting first)</Label>
           <Input
             type="number"
             min="1"
             max="400"
-            value={targetScore}
-            onChange={(e) => setTargetScore(e.target.value)}
-            placeholder="e.g., 166"
+            value={defendingScore}
+            onChange={(e) => setDefendingScore(e.target.value)}
+            placeholder="e.g., 200"
             className="bg-secondary/50 border-white/10 font-mono"
           />
         </div>
@@ -160,7 +160,7 @@ export function ChaseWinMaxBallsCalculator({ teams, defaultChaser }: Props) {
           style={{ fontFamily: 'Rajdhani,sans-serif', letterSpacing: '0.05em' }}
         >
           <Clock className="h-4 w-4" />
-          {loading ? 'CALCULATING...' : 'CALCULATE SLOWEST SAFE CHASE'}
+          {loading ? 'CALCULATING...' : 'CALCULATE MAX BALLS TO CHASE'}
         </Button>
       </form>
 
@@ -197,12 +197,12 @@ export function ChaseWinMaxBallsCalculator({ teams, defaultChaser }: Props) {
                         className="font-bold text-foreground"
                         style={{ fontFamily: 'Rajdhani,sans-serif' }}
                       >
-                        Chase within:{' '}
+                        Opponent must chase in:{' '}
                         <span className="text-primary font-mono">{oversDisplay}</span>
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {chasingTeam} can take up to {oversDisplay} and still stay above {team} on
-                        NRR.
+                        The opponent must chase down your score within {oversDisplay} for{' '}
+                        {defendingTeam} to stay above {team} on NRR.
                       </p>
                     </div>
                   </div>

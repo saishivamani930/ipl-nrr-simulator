@@ -403,3 +403,9 @@ export async function calculateChaseWinMaxBalls(body: unknown): Promise<unknown>
   const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prepareThresholdBody(body)) });
   return handleResponse(res, (p) => p);
 }
+
+export async function calculateDefendLoseMaxBalls(body: unknown): Promise<unknown> {
+  const url = `${API_BASE}${API_PREFIX}/thresholds/defend-loss/max-balls?source=${DEFAULT_SOURCE}&season=${DEFAULT_SEASON}`;
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prepareThresholdBody(body)) });
+  return handleResponse(res, (p) => p);
+}

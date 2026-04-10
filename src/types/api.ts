@@ -4,6 +4,7 @@ export interface Team {
   team: string;
   code?: string;
   matches: number;
+  played?:number;
   won?: number;
   lost?: number;
   nr?: number;
