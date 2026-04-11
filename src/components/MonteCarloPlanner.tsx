@@ -144,7 +144,7 @@ export function MonteCarloPlanner({ teams }: MonteCarloPlannerProps) {
 
   // Real upcoming fixtures sorted by date
   const filteredEspnFixtures = [...espnFixtures]
-    .filter(f => f.status !== "completed")
+    .filter(f => f.status !== "completed" && f.status !== "no_result")
     .sort((a, b) => {
       const aTime = a.date ? new Date(a.date).getTime() : Number.MAX_SAFE_INTEGER;
       const bTime = b.date ? new Date(b.date).getTime() : Number.MAX_SAFE_INTEGER;
