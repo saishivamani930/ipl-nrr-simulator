@@ -11,6 +11,7 @@ import {
 import { ChaseMinScoreCalculator } from "@/components/calculators/ChaseMinScoreCalculator";
 import { DefendMaxScoreCalculator } from '@/components/calculators/DefendMaxScoreCalculator';
 import { ChaseWinMaxBallsCalculator } from '@/components/calculators/ChaseWinMaxBallsCalculator';
+import { DefendLoseMaxBallsCalculator } from '@/components/calculators/DefendLoseMaxBallsCalculator';
 import type { Team } from '@/types/api';
 
 interface RequirementsSectionProps {
@@ -26,12 +27,6 @@ export function RequirementsSection({ teams }: RequirementsSectionProps) {
   const [scenarioMode, setScenarioMode] = useState<ScenarioMode>('win');
   const hasTeams = teams.length > 0;
 
-  // Determine which calculator to show based on batting mode + scenario
-  // batting-first + win   => DefendMaxScoreCalculator (defending and winning)
-  // batting-first + lose  => DefendMaxScoreCalculator (defending and losing — not currently a calculator, show message)
-  // batting-second + win  => ChaseWinMaxBallsCalculator (chasing and winning)
-  // batting-second + lose => ChaseMinScoreCalculator (chasing and losing)
-
   const showDefendWin = battingMode === 'batting-first' && scenarioMode === 'win';
   const showChaseWin = battingMode === 'batting-second' && scenarioMode === 'win';
   const showChaseLose = battingMode === 'batting-second' && scenarioMode === 'lose';
@@ -41,7 +36,7 @@ export function RequirementsSection({ teams }: RequirementsSectionProps) {
     if (showDefendWin) return "My team bats first and wins. What's the maximum score the opponent can make for us to stay above a rival on NRR?";
     if (showChaseWin) return "My team bats second and wins. How slowly can we chase and still stay above a rival on NRR?";
     if (showChaseLose) return "My team bats second and loses. What's the minimum score we must reach to stay above a rival on NRR?";
-    if (showDefendLose) return "My team bats first and loses. NRR damage depends on how quickly the opponent chases — use the Chase & Win calculator from their perspective.";
+    if (showDefendLose) return "My team bats first and loses. In how many overs should the opponent chase our score so we stay above a rival on NRR?";
     return "";
   };
 
@@ -217,14 +212,7 @@ export function RequirementsSection({ teams }: RequirementsSectionProps) {
                 <ChaseMinScoreCalculator key={`chase-lose-${selectedTeam}`} teams={teams} defaultChaser={selectedTeam} />
               )}
               {showDefendLose && (
-                <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
-                  <AlertCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    When your team bats first and loses, your NRR damage is determined by how quickly
-                    the opponent chases. To analyze this scenario, use the <strong className="text-foreground">Chase & Win</strong> calculator
-                    from the opponent's perspective — their fastest safe chase is your worst case.
-                  </p>
-                </div>
+                <DefendLoseMaxBallsCalculator key={`defend-lose-${selectedTeam}`} teams={teams} defaultDefender={selectedTeam} />
               )}
             </div>
 
