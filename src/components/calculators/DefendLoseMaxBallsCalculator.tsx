@@ -72,6 +72,8 @@ export function DefendLoseMaxBallsCalculator({ teams, defaultDefender }: Props) 
             defending_score: parseInt(defendingScore, 10),
           });
 
+          console.log("RAW API response:", JSON.stringify(all, null, 2));
+          
           const extracted = isObj(data) && isObj((data as any).result) 
           ? (data as any).result 
           : data;
@@ -90,7 +92,7 @@ export function DefendLoseMaxBallsCalculator({ teams, defaultDefender }: Props) 
       setLoading(false);
     }
   };
-
+  
   return (
     <div className="space-y-5">
       <form onSubmit={handleSubmit} className="space-y-4">
