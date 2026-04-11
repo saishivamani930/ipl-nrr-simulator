@@ -71,9 +71,7 @@ export function DefendLoseMaxBallsCalculator({ teams, defaultDefender }: Props) 
             target_team: targetTeam,
             defending_score: parseInt(defendingScore, 10),
           });
-
-          console.log("RAW API response:", JSON.stringify(all, null, 2));
-
+          
           const extracted = isObj(data) && isObj((data as any).result) 
           ? (data as any).result 
           : data;
@@ -84,6 +82,9 @@ export function DefendLoseMaxBallsCalculator({ teams, defaultDefender }: Props) 
           };
         })
       );
+      console.log("RAW API response:", JSON.stringify(all, null, 2));
+
+
 
       setResults(all);
     } catch (err) {
