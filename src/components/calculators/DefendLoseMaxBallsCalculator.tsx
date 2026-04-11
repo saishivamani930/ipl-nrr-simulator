@@ -72,7 +72,9 @@ export function DefendLoseMaxBallsCalculator({ teams, defaultDefender }: Props) 
             defending_score: parseInt(defendingScore, 10),
           });
 
-          const extracted = isObj(data) && isObj(data.result) ? data.result : data;
+          const extracted = isObj(data) && isObj((data as any).result) 
+          ? (data as any).result 
+          : data;
 
           return {
             team: targetTeam,
@@ -176,7 +178,7 @@ export function DefendLoseMaxBallsCalculator({ teams, defaultDefender }: Props) 
           {results.map(({ team, result }) => {
             const oversDisplay =
               result.ok && result.value
-                ? ((result.details?.overs_str as string) ?? ballsToOvers(result.value))
+                ? (ballsToOvers(result.value))
                 : null;
 
             return (
