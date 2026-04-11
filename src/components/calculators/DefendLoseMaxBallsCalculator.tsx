@@ -73,7 +73,7 @@ export function DefendLoseMaxBallsCalculator({ teams, defaultDefender }: Props) 
           });
 
           console.log("RAW API response:", JSON.stringify(all, null, 2));
-          
+
           const extracted = isObj(data) && isObj((data as any).result) 
           ? (data as any).result 
           : data;
@@ -201,12 +201,12 @@ export function DefendLoseMaxBallsCalculator({ teams, defaultDefender }: Props) 
                         className="font-bold text-foreground"
                         style={{ fontFamily: 'Rajdhani,sans-serif' }}
                       >
-                        Opponent must chase in:{' '}
+                        Opponent must take at least:{' '}
                         <span className="text-primary font-mono">{oversDisplay}</span>
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        The opponent must chase down your score within {oversDisplay} for{' '}
-                        {defendingTeam} to stay above {team} on NRR.
+                         If {opponentTeam} chases your score faster than {oversDisplay},{' '}
+                         {defendingTeam} will drop below {team} on NRR.
                       </p>
                     </div>
                   </div>
